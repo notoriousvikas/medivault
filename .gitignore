@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment Variables & Secrets (CRITICAL)
+.env
+.env.*
+!.env.example
+*.env
+server/.env
+server/.env.*
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# Build Outputs
+dist/
+*/dist/
+build/
+*/build/
+dist-ssr/
+*.local
+
+# Cache & Temporary Directories
+.vite/
+*/.vite/
+.vite-temp/
+*/.vite-temp/
+scratch/
+*/scratch/
+tmp/
+temp/
+uploads/
+*/uploads/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor & OS Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj

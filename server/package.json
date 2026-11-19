@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "ai:start": "cd ../ai-service && .venv\\Scripts\\uvicorn app.main:app --reload --port 8000"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

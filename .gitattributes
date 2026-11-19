@@ -1,3 +1,1 @@
-*.py linguist-language=Python
-*.py linguist-vendored=false
-*.py linguist-generated=false
+ai-service/**/*.py linguist-language=Python linguist-detectable -linguist-generated -linguist-documentation -linguist-vendored

@@ -9,6 +9,8 @@ import adminRoutes from './modules/admin/admin.routes.js';
 import chatRoutes from './modules/chat/chat.routes.js';
 import consultationRoutes from './modules/consultations/consultation.routes.js';
 import emergencyRoutes from './modules/emergency/emergency.routes.js';
+import aiRoutes from './modules/ai/ai.routes.js';
+import appointmentRoutes from './modules/appointments/appointment.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 
 const app = express();
@@ -25,11 +27,21 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
+app.use(express.json({ strict: false }));
+// Gracefully recover if client sends empty or non-object JSON body
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    req.body = {};
+    return next();
+  }
+  next(err);
+});
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
+
+app.use('/uploads', express.static('uploads'));
 
 app.use('/api/users', userRoutes);
 app.use('/api/records', recordRoutes);
@@ -39,6 +51,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/consultations', consultationRoutes);
 app.use('/api/emergency', emergencyRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/appointments', appointmentRoutes);
 // Direct shortcut so scanned physical QR codes can hit /emergency/:token
 app.use('/emergency', emergencyRoutes);
 

@@ -5,9 +5,15 @@ import { authorizeRoles } from '../../middleware/authorization.middleware.js';
 
 const router = express.Router();
 
-// Require both authentication and admin role for all routes in this router
+// Require both authentication and admin role for all routes in this router.
+// If caller is patient, doctor, or non-admin, return 404 so the admin route appears non-existent.
 router.use(verifyAuth);
-router.use(authorizeRoles('admin'));
+router.use((req, res, next) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(404).json({ status: 'fail', message: 'Route not found.' });
+  }
+  next();
+});
 
 // System metrics and dashboard overview
 router.get('/overview', controller.getDashboardOverview);

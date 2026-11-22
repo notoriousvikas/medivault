@@ -23,8 +23,10 @@ export const getDoctors = catchAsync(async (req, res) => {
   }
 
   const doctors = await User.find(query)
-    .select('name email specialization licenseNumber isVerified verificationStatus createdAt')
-    .sort({ isVerified: -1, name: 1 });
+    .select(
+      'name email specialization licenseNumber isVerified verificationStatus createdAt isAvailableForBooking workingHours workingDays consultationFee hospitalOrClinic bio'
+    )
+    .sort({ isVerified: -1, isAvailableForBooking: -1, name: 1 });
 
   res.status(200).json({
     status: 'success',

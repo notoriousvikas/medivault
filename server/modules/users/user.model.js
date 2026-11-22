@@ -44,6 +44,22 @@ const emergencyAccessLogSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const locationSchema = new mongoose.Schema(
+  {
+    address: { type: String, trim: true },
+    city: { type: String, trim: true },
+    state: { type: String, trim: true },
+    country: { type: String, trim: true, default: 'India' },
+    postalCode: { type: String, trim: true },
+    latitude: { type: Number },
+    longitude: { type: Number },
+    accuracy: { type: Number },
+    isAllowed: { type: Boolean, default: false },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     role: {
@@ -80,6 +96,20 @@ const userSchema = new mongoose.Schema(
     },
     verificationNotes: { type: String, trim: true },
 
+    // Doctor Availability & Scheduling
+    isAvailableForBooking: { type: Boolean, default: true },
+    workingHours: {
+      start: { type: String, default: '09:00' },
+      end: { type: String, default: '17:00' },
+    },
+    workingDays: {
+      type: [String],
+      default: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    },
+    consultationFee: { type: Number, default: 50 },
+    hospitalOrClinic: { type: String, trim: true, default: 'AyuRaksha Medical Center' },
+    bio: { type: String, trim: true },
+
     // Emergency QR Medical Access
     emergencyToken: {
       type: String,
@@ -94,6 +124,10 @@ const userSchema = new mongoose.Schema(
     emergencyAccessLogs: {
       type: [emergencyAccessLogSchema],
       default: [],
+    },
+    location: {
+      type: locationSchema,
+      default: () => ({ isAllowed: false }),
     },
   },
   {

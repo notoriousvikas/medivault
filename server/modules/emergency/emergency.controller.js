@@ -209,7 +209,7 @@ function renderEmergencyCardHTML({
     </div>
 
     <div class="footer">
-      Powered by MediVault Emergency Response System • For authorized emergency medical use only
+      Powered by AyuRaksha (Life Saver) Emergency Response System • For authorized emergency medical use only
     </div>
   </div>
 </body>
@@ -298,6 +298,7 @@ const getEmergencyProfileByToken = catchAsync(async (req, res) => {
       age: user.age,
       bloodGroup: user.bloodGroup || 'UNKNOWN',
       allergies: user.allergies || [],
+      location: user.location || null,
     },
     emergencyContacts: user.emergencyContacts || [],
     criticalConditions: user.emergencyInfo?.criticalConditions || [],

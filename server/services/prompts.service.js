@@ -1,7 +1,7 @@
 /**
  * Medical System Prompt establishing clinical safety and simple, patient-friendly clarity.
  */
-const SYSTEM_MEDICAL_ANALYST_PROMPT = `You are Aarogya AI, a helpful, clear, and concise clinical assistant for MediVault.
+const SYSTEM_MEDICAL_ANALYST_PROMPT = `You are AyuRaksha AI (Life Saver), a helpful, clear, and concise clinical assistant.
 Your goal is to provide simple, direct, and easy-to-understand explanations of medical records, prescriptions, and health questions.
 
 Core Directives:
@@ -10,11 +10,11 @@ Core Directives:
 3. GROUNDED IN PATIENT DATA: Use the provided patient profile, allergies, and records accurately.
 4. ESSENTIAL SAFETY ONLY: Highlight genuine safety warnings (like drug interactions or serious red flags) in 1-2 brief sentences.`;
 
-const SYSTEM_CHAT_PROMPT = `You are Aarogya AI, a friendly, concise, and focused medical assistant for MediVault.
+const SYSTEM_CHAT_PROMPT = `You are AyuRaksha AI (Life Saver), a friendly, concise, and focused medical assistant.
 
 STRICT DOMAIN SCOPE:
-- You ONLY answer questions related to medicine, health, symptoms, medications, lab reports, wellness, or MediVault platform features (such as uploading medical records, emergency QR passes, doctor access codes, and health timelines).
-- If the user's inquiry is NOT related to health, medicine, or MediVault (e.g., coding, general trivia, politics, entertainment, games, math, essays, or non-medical topics), you MUST politely decline and ignore it. Respond with a single polite sentence: "I am Aarogya AI, MediVault's clinical health assistant. I can only assist with medical questions and managing your MediVault health records. Please feel free to ask a health-related query!"
+- You ONLY answer questions related to medicine, health, symptoms, medications, lab reports, wellness, or AyuRaksha platform features (such as uploading medical records, emergency QR passes, doctor access codes, and health timelines).
+- If the user's inquiry is NOT related to health, medicine, or AyuRaksha (e.g., coding, general trivia, politics, entertainment, games, math, essays, or non-medical topics), you MUST politely decline and ignore it. Respond with a single polite sentence: "I am AyuRaksha AI (Life Saver), your clinical health assistant. I can only assist with medical questions and managing your AyuRaksha health records. Please feel free to ask a health-related query!"
 - Never engage in non-medical or off-topic discussions.
 
 Instructions for valid health inquiries:
@@ -109,6 +109,37 @@ Provide a simple, concise, and easy-to-read review in plain language (keep it br
 }
 
 /**
+ * Helper to identify if a record is an actual chest X-ray
+ */
+function isXRayRecord(record) {
+  if (!record) return false;
+  const cat = (record.category || '').toLowerCase();
+  const title = (record.title || '').toLowerCase();
+  if (
+    cat.includes('lab') ||
+    cat.includes('blood') ||
+    cat.includes('prescription') ||
+    cat.includes('discharge') ||
+    cat.includes('note') ||
+    cat.includes('pathology') ||
+    title.includes('lab') ||
+    title.includes('blood') ||
+    title.includes('cbc') ||
+    title.includes('prescription')
+  ) {
+    return false;
+  }
+  if (cat.includes('xray') || cat.includes('x-ray') || cat.includes('radiograph')) return true;
+  if (
+    (cat === 'scan' || cat.includes('scan')) &&
+    (title.includes('xray') || title.includes('x-ray') || title.includes('chest') || title.includes('radiograph') || title.includes('cxr'))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Builds prompt for comprehensive medical record / lab report analysis using RAG context.
  */
 function buildRecordAnalysisPrompt({
@@ -129,65 +160,89 @@ function buildRecordAnalysisPrompt({
   }
 `.trim();
 
+  const isXRay = isXRayRecord(record);
+
+  // If the record is NOT a chest X-Ray, filter out past X-ray discussions to prevent prompt contamination
+  const cleanChatHistory = isXRay
+    ? chatHistory
+    : chatHistory.filter((c) => {
+        const text = (c.content || '').toLowerCase();
+        return (
+          !text.includes('x-ray') &&
+          !text.includes('radiograph') &&
+          !text.includes('lung opacity') &&
+          !text.includes('densenet') &&
+          !text.includes('pneumothorax') &&
+          !text.includes('cardiomegaly')
+        );
+      });
+
   const recordContent = `
-- Title: ${record.title}
-- Category: ${record.category}
-- Date: ${new Date(record.uploadDate || record.createdAt).toLocaleDateString()}
-- File URL: ${record.fileUrl || 'N/A'}
-- Extracted / Parsed Data: ${
-    typeof record.parsedData === 'object'
+- Document Title: ${record.title}
+- Document Category: ${record.category}
+- Upload Date: ${new Date(record.uploadDate || record.createdAt).toLocaleDateString()}
+- Extracted Clinical Data / Biomarkers: ${
+    record.parsedData && Object.keys(record.parsedData).length > 0
       ? JSON.stringify(record.parsedData, null, 2)
-      : record.parsedData || 'None available'
+      : 'No pre-parsed numeric data. Interpret based on title, category, and standard clinical reference for this diagnostic test.'
   }
 `.trim();
 
   const pastRecordsSummary = pastRecords
     .filter((r) => r._id?.toString() !== record._id?.toString())
-    .slice(0, 5)
+    .slice(0, 4)
     .map(
       (r) =>
         `- [${new Date(r.uploadDate || r.createdAt).toLocaleDateString()}] ${r.title} (${r.category})`
     )
-    .join('\n') || 'No previous records.';
+    .join('\n') || 'None.';
 
   const activeMeds = activePrescriptions
     .flatMap((p) => p.medications || [])
     .map((m) => `- ${m.name} (${m.dosage})`)
     .join('\n') || 'None recorded.';
 
-  const chatContextText = chatHistory
-    .slice(-4)
+  const chatContextText = cleanChatHistory
+    .slice(-3)
     .map((c) => `${c.role.toUpperCase()}: ${c.content}`)
     .join('\n') || 'None.';
+
+  const categoryGuidance = isXRay
+    ? `DOCUMENT TYPE: CHEST RADIOGRAPH / IMAGING
+- Focus on pulmonary markings, cardiothoracic structures, pleural spaces, and radiologic features.`
+    : `DOCUMENT TYPE: ${record.category.toUpperCase()} (LABORATORY / CLINICAL DOCUMENT)
+- THIS IS NOT A CHEST X-RAY OR RADIOGRAPH.
+- STRICT NEGATIVE DIRECTIVE: DO NOT mention lungs, lung opacity, chest X-rays, radiographs, infiltration, pneumothorax, effusion, cardiomegaly, or CT/MRI imaging.
+- DO NOT borrow findings from previous imaging visits or past chat discussions.
+- Focus strictly on laboratory medicine for this specific test (${record.title} - ${record.category}), such as complete blood count (CBC), hematology (hemoglobin, WBC/leukocytes, platelets, RBC indices), blood biochemistry, or pathology indicators.`;
 
   return [
     { role: 'system', content: SYSTEM_MEDICAL_ANALYST_PROMPT },
     {
       role: 'user',
-      content: `Please conduct a comprehensive clinical analysis of this medical record / diagnostic report using the retrieved patient background.
+      content: `Please conduct a grounded clinical interpretation of this medical document.
 
 ### 📋 PATIENT PROFILE
 ${patientInfo}
 
-### 📄 TARGET MEDICAL RECORD REPORT
+### 📄 TARGET MEDICAL DOCUMENT (ANALYZE THIS ONLY)
 ${recordContent}
 
-### 📈 HISTORICAL RECORDS & TREND CONTEXT
-${pastRecordsSummary}
+### 🔬 CLINICAL BOUNDARIES & INSTRUCTIONS:
+${categoryGuidance}
 
-### 💊 CURRENT ACTIVE MEDICATIONS
-${activeMeds}
-
-### 💬 RECENT CONSULTATION CONTEXT
-${chatContextText}
+### 📈 PATIENT BACKGROUND (FOR REFERENCE ONLY — DO NOT CONFUSE WITH TARGET DOCUMENT)
+- Prior Records: ${pastRecordsSummary}
+- Active Medications: ${activeMeds}
+- Prior Chat Context: ${chatContextText}
 
 ---
 
-### INSTRUCTIONS:
-Provide a simple, concise, and clear analysis of this report in plain language (keep it brief and avoid massive tables):
-1. **Summary**: A short 2-3 sentence overview of what the test shows.
-2. **Notable Values**: Mention any values that are out of range or important, in simple terms.
-3. **Next Steps**: 2-3 simple recommendations for the patient to discuss with their doctor.`,
+### REQUIRED OUTPUT FORMAT:
+Provide a clear, simple, and patient-friendly analysis (2-3 short paragraphs or clean bullet points):
+1. **Summary**: A clear 2-3 sentence overview explaining what this ${record.category} (${record.title}) is and what it tells the patient.
+2. **Notable Findings / Key Markers**: Highlight key parameters relevant to this test (e.g. for CBC/blood test: Hemoglobin, White Blood Cells, Platelets; for metabolic: Glucose, Kidney/Liver markers) and explain what normal vs abnormal values signify.
+3. **Next Steps**: 2-3 practical questions or follow-up points to discuss with their treating doctor or pathologist.`,
     },
   ];
 }
@@ -201,6 +256,7 @@ function buildRagChatPrompt({
   relevantRecords = [],
   relevantPrescriptions = [],
   chatHistory = [],
+  preferredLanguage,
 }) {
   const patientProfileSection = patientProfile
     ? `Patient: ${patientProfile.name}, Age: ${patientProfile.age || 'N/A'}, Blood Group: ${
@@ -239,6 +295,13 @@ function buildRagChatPrompt({
         .join('\n')
     : 'No relevant prescriptions found.';
 
+  let languageInstruction = '';
+  if (preferredLanguage && preferredLanguage !== 'en-IN' && preferredLanguage !== 'auto') {
+    languageInstruction = `\n[SPOKEN/WRITTEN LANGUAGE INSTRUCTION]\nThe user has explicitly requested language code "${preferredLanguage}". You MUST respond in that language (e.g. Hindi, Bengali, Tamil, Telugu, etc.) using clear, natural, and warm sentences. Keep formatting simple so it sounds natural when read aloud via Text-to-Speech. Avoid heavy tables or excessive asterisks.`;
+  } else {
+    languageInstruction = `\n[LANGUAGE INSTRUCTION]\nRespond in the SAME language that the user used to ask their question. If the user writes or speaks in English, respond in clear English. If the user writes or speaks in Hindi or another Indian language, respond in that language. Use warm, concise, and easy-to-understand sentences. Avoid complex markdown tables or excessive asterisks so the response can be read or spoken aloud naturally.`;
+  }
+
   const messages = [
     {
       role: 'system',
@@ -254,8 +317,9 @@ ${recordsContext}
 [ACTIVE & HISTORICAL PRESCRIPTIONS]
 ${prescriptionsContext}
 ----------------------------------------
+${languageInstruction}
 
-If the query is NOT related to medical, health, or MediVault topics, ignore/decline it politely with: "I am MediVault's health assistant. I can only assist with medical questions and managing your MediVault health records. Please feel free to ask a health-related query!"
+If the query is NOT related to medical, health, or AyuRaksha topics, ignore/decline it politely with: "I am AyuRaksha's health assistant. I can only assist with medical questions and managing your AyuRaksha health records. Please feel free to ask a health-related query!"
 
 Otherwise, give a simple, concise, and direct answer to the user's health question in plain conversational language. Do not output big tables or checklists unless specifically requested.`,
     },
@@ -280,9 +344,79 @@ Otherwise, give a simple, concise, and direct answer to the user's health questi
   return messages;
 }
 
+/**
+ * Builds prompt for Plain-Language Clinical Interpretation of TorchXRayVision DenseNet-121 findings.
+ */
+function buildXRayInterpretationPrompt({
+  xrayResult,
+  patientProfile,
+  recordTitle = 'Chest X-Ray',
+}) {
+  const patientInfo = `
+- Name: ${patientProfile?.name || 'Patient'}
+- Age: ${patientProfile?.age || 'Not specified'}
+- Blood Group: ${patientProfile?.bloodGroup || 'Not specified'}
+- Known Allergies: ${
+    patientProfile?.allergies?.length
+      ? patientProfile.allergies.join(', ')
+      : 'None reported'
+  }
+`.trim();
+
+  // Sort findings by raw score descending to highlight top signals
+  const sortedFindings = [...(xrayResult.findings || [])].sort(
+    (a, b) => (b.raw_score || 0) - (a.raw_score || 0)
+  );
+
+  const findingsText = sortedFindings
+    .map(
+      (f, i) =>
+        `${i + 1}. **${f.label}**: raw score ${f.raw_score?.toFixed(4) ?? f.raw_score}`
+    )
+    .join('\n');
+
+  return [
+    {
+      role: 'system',
+      content: `${SYSTEM_MEDICAL_ANALYST_PROMPT}
+
+You are translating computational DenseNet-121 radiology model findings into a clear, patient-friendly explanation.
+Always adhere to medical safety: raw model scores are NOT clinical diagnoses.`,
+    },
+    {
+      role: 'user',
+      content: `Please provide a clear, empathetic, and concise patient-friendly clinical interpretation for the following Chest X-Ray radiograph analysis.
+
+### 📋 PATIENT PROFILE
+${patientInfo}
+
+### 🩻 RADIOLOGY RECORD: ${recordTitle}
+- Modality: ${xrayResult.modality || 'Chest X-Ray (CXR)'}
+- Neural Network Model: ${xrayResult.model_name || 'DenseNet-121'} (${xrayResult.model_version || 'densenet121-res224-all'})
+- Compute Device: ${xrayResult.device || 'CPU'}
+- Execution Time: ${xrayResult.execution_time_ms || 0} ms
+
+### 🔬 TOP PATHOLOGY PATTERN SCORES (TorchXRayVision)
+${findingsText}
+
+### ⚠️ CLINICAL DISCLAIMER
+${xrayResult.clinical_disclaimer || 'Research prototype only. Not a medical diagnosis.'}
+
+---
+
+### INSTRUCTIONS:
+Provide a clear, brief, and patient-centered explanation (2-3 short paragraphs max):
+1. **Summary of Findings**: Explain what the radiograph patterns indicate in everyday words (highlight the top 2-3 highest-scoring findings, and note if other findings are minimal/low).
+2. **Context & Plain Language Explanation**: Briefly explain what those top terms mean in normal human terms without inducing anxiety.
+3. **Safety Guidance & Next Steps**: Mention clearly that these numbers are computational pattern-matching scores rather than a doctor's diagnosis, and advise discussing the scan with their treating doctor or radiologist.`,
+    },
+  ];
+}
+
 export {
   SYSTEM_MEDICAL_ANALYST_PROMPT,
   buildPrescriptionAnalysisPrompt,
   buildRecordAnalysisPrompt,
   buildRagChatPrompt,
+  buildXRayInterpretationPrompt,
 };

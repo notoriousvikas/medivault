@@ -176,6 +176,30 @@ const updateUser = catchAsync(async (req, res) => {
 
   if (specialization !== undefined) updateFields.specialization = specialization;
   if (licenseNumber !== undefined) updateFields.licenseNumber = licenseNumber;
+  if (req.body.isAvailableForBooking !== undefined) updateFields.isAvailableForBooking = Boolean(req.body.isAvailableForBooking);
+  if (req.body.workingHours !== undefined) updateFields.workingHours = req.body.workingHours;
+  if (req.body.workingDays !== undefined) updateFields.workingDays = req.body.workingDays;
+  if (req.body.consultationFee !== undefined) updateFields.consultationFee = Number(req.body.consultationFee);
+  if (req.body.hospitalOrClinic !== undefined) updateFields.hospitalOrClinic = req.body.hospitalOrClinic;
+  if (req.body.bio !== undefined) updateFields.bio = req.body.bio;
+
+  if (req.body.location !== undefined) {
+    const loc = req.body.location;
+    if (typeof loc === 'object' && loc !== null) {
+      updateFields.location = {
+        address: loc.address !== undefined ? String(loc.address).trim() : '',
+        city: loc.city !== undefined ? String(loc.city).trim() : '',
+        state: loc.state !== undefined ? String(loc.state).trim() : '',
+        country: loc.country !== undefined ? String(loc.country).trim() : 'India',
+        postalCode: loc.postalCode !== undefined ? String(loc.postalCode).trim() : '',
+        latitude: typeof loc.latitude === 'number' ? loc.latitude : undefined,
+        longitude: typeof loc.longitude === 'number' ? loc.longitude : undefined,
+        accuracy: typeof loc.accuracy === 'number' ? loc.accuracy : undefined,
+        isAllowed: Boolean(loc.isAllowed),
+        updatedAt: new Date(),
+      };
+    }
+  }
 
   const user = await User.findByIdAndUpdate(targetUserId, updateFields, {
     new: true,

@@ -12,11 +12,21 @@ router
   .get(controller.listRecords)
   .post(documentUpload.single('file'), controller.createRecord);
 
+// Complete Chest X-Ray AI Triage, Specialist Matching & Auto-Booking Pipeline
+router
+  .route('/upload-and-triage')
+  .post(documentUpload.single('file'), controller.uploadAndTriageXRay);
+
 // Groq RAG medical record / report analysis
 router
   .route('/:id/analyze')
   .get(controller.analyzeRecord)
   .post(controller.analyzeRecord);
+
+// Python AI Microservice: Chest X-Ray radiograph inference (DenseNet-121)
+router
+  .route('/:id/analyze-xray')
+  .post(documentUpload.single('file'), controller.analyzeRecordXRay);
 
 router
   .route('/:id')

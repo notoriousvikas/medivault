@@ -69,12 +69,12 @@ export default function Navbar() {
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-xl tracking-tight text-navy-900">MediVault</span>
+                <span className="font-extrabold text-xl tracking-tight text-navy-900">AyuRaksha</span>
                 <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 rounded-md">
-                  EHR 2.0
+                  Life Saver
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">Decentralized & AI Powered</p>
+              <p className="text-[11px] text-slate-500 font-medium">Life Saver &bull; AI Medical Triage</p>
             </div>
           </Link>
 
@@ -84,9 +84,14 @@ export default function Navbar() {
               <>
                 <Link
                   to={user?.role === 'admin' ? '/admin' : '/dashboard'}
-                  className="text-sm font-semibold text-slate-600 hover:text-trust-600 transition-colors"
+                  className="text-sm font-semibold text-slate-600 hover:text-trust-600 transition-colors flex items-center gap-1.5"
                 >
-                  Dashboard
+                  <span>{user?.role === 'admin' ? 'Admin Portal' : 'Dashboard'}</span>
+                  {user?.role === 'admin' && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-extrabold bg-purple-100 text-purple-700 rounded-md">
+                      Admin
+                    </span>
+                  )}
                 </Link>
                 <Link
                   to="/consultations"

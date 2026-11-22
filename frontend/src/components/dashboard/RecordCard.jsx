@@ -23,11 +23,17 @@ export default function RecordCard({ record, onView, onDeleted, onAnalyzed }) {
 
   const handleAnalyze = async (e) => {
     e.stopPropagation();
+    const recordId = record?._id || record?.id || record?.recordId || record?.data?._id;
+    if (!recordId) {
+      toast.error('AI Analysis Error', 'Missing record identifier.');
+      return;
+    }
     setAnalyzing(true);
     try {
-      const res = await recordsApi.analyzeRecord(record._id);
+      const res = await recordsApi.analyzeRecord(recordId);
       toast.success('AI Analysis Completed', 'Aarogya AI clinical summary and biomarkers extracted.');
-      if (onAnalyzed) onAnalyzed(res.data || record);
+      const updated = res?.data?.record || res?.data || { ...record, _id: recordId };
+      if (onAnalyzed) onAnalyzed(updated);
     } catch (err) {
       toast.error('AI Analysis Error', err.message || 'Could not analyze document with Aarogya AI.');
     } finally {
@@ -37,13 +43,15 @@ export default function RecordCard({ record, onView, onDeleted, onAnalyzed }) {
 
   const handleDelete = async (e) => {
     e.stopPropagation();
+    const recordId = record?._id || record?.id || record?.recordId || record?.data?._id;
+    if (!recordId) return;
     if (!window.confirm(`Permanently delete "${record.title}" from your vault?`)) return;
 
     setDeleting(true);
     try {
-      await recordsApi.deleteRecord(record._id);
+      await recordsApi.deleteRecord(recordId);
       toast.info('Record Removed', `"${record.title}" was removed from the vault.`);
-      if (onDeleted) onDeleted(record._id);
+      if (onDeleted) onDeleted(recordId);
     } catch (err) {
       toast.error('Delete Failed', err.message || 'Could not delete record.');
     } finally {
@@ -53,6 +61,7 @@ export default function RecordCard({ record, onView, onDeleted, onAnalyzed }) {
 
   const config = getCategoryConfig(record.category);
   const hasAiSummary = Boolean(record.parsedData?.aiAnalysis || record.parsedData?.summary);
+  const triageLevel = record.parsedData?.triage?.level;
 
   return (
     <div
@@ -68,6 +77,18 @@ export default function RecordCard({ record, onView, onDeleted, onAnalyzed }) {
           </span>
 
           <div className="flex items-center gap-1.5">
+            {triageLevel && (
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                triageLevel === 'CRITICAL'
+                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                  : triageLevel === 'URGENT'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              }`}>
+                <span>{triageLevel}</span>
+              </span>
+            )}
+
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200">
               <Lock className="w-3 h-3 text-emerald-600" />
               <span>Encrypted</span>
@@ -91,7 +112,7 @@ export default function RecordCard({ record, onView, onDeleted, onAnalyzed }) {
         <p className="mt-1.5 text-xs text-slate-500 line-clamp-2 leading-relaxed">
           {record.parsedData?.summary ||
             record.parsedData?.aiAnalysis ||
-            'Encrypted document stored safely in MediVault. Click to decrypt and view clinical biomarkers.'}
+            'Encrypted document stored safely in AyuRaksha. Click to decrypt and view clinical biomarkers.'}
         </p>
       </div>
 

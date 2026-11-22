@@ -278,7 +278,7 @@ export default function SharedPortalPage() {
                     <Pill className="w-5 h-5 text-emerald-600" />
                     <span>Active Clinical Medications & Prescriptions</span>
                   </h3>
-                  <p className="text-xs text-slate-500">Live active prescriptions synced from MediVault</p>
+                  <p className="text-xs text-slate-500">Live active prescriptions synced from AyuRaksha</p>
                 </div>
               </div>
 

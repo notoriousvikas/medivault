@@ -18,7 +18,7 @@ export default function FeatureCards() {
                 Decentralized patient privacy meets high-speed clinical intelligence.
               </h2>
               <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-                MediVault replaces fragmented hospital portals with a single patient-owned cryptographic vault. Take your lab results, imaging scans, and prescriptions wherever you go.
+                AyuRaksha replaces fragmented hospital portals with a single patient-owned cryptographic vault. Take your lab results, imaging scans, and prescriptions wherever you go.
               </p>
               <div className="pt-2">
                 <a
@@ -69,7 +69,7 @@ export default function FeatureCards() {
               All your health records are safe with us.
             </h2>
             <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-              We take your medical data security seriously. That is why MediVault employs military-grade client-side encryption protocols before documents ever reach cloud storage. Only you and doctors with your explicit cryptographic authorization can view your files.
+              We take your medical data security seriously. That is why AyuRaksha employs military-grade client-side encryption protocols before documents ever reach cloud storage. Only you and doctors with your explicit cryptographic authorization can view your files.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">

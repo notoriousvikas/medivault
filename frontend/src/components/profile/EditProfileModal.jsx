@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   X, User, Droplets, Phone, AlertTriangle, Heart, Stethoscope,
-  Building2, Shield, Plus, Trash2, Save, RefreshCw, ChevronDown, ChevronUp
+  Building2, Shield, Plus, Trash2, Save, RefreshCw, ChevronDown, ChevronUp,
+  MapPin, Navigation, Compass, CheckCircle2
 } from 'lucide-react';
 import { authApi } from '../../api/auth';
 import { emergencyApi } from '../../api/emergency';
@@ -29,13 +30,25 @@ function SectionHeader({ icon: Icon, label, color = 'text-trust-600', expanded, 
   );
 }
 
-export default function EditProfileModal({ isOpen, onClose, user, onProfileUpdated }) {
+export default function EditProfileModal({ isOpen, onClose, user, onProfileUpdated, onUpdateSuccess }) {
   const toast = useToast();
 
   // ── Basic Info ──────────────────────────────────────────────
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [bloodGroup, setBloodGroup] = useState('O+');
+
+  // ── Location & GPS ──────────────────────────────────────────
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [country, setCountry] = useState('India');
+  const [postalCode, setPostalCode] = useState('');
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const [accuracy, setAccuracy] = useState(null);
+  const [isLocationAllowed, setIsLocationAllowed] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   // ── Allergies (dynamic list) ────────────────────────────────
   const [allergies, setAllergies] = useState([]);
@@ -68,6 +81,7 @@ export default function EditProfileModal({ isOpen, onClose, user, onProfileUpdat
   const [saving, setSaving] = useState(false);
   const [openSections, setOpenSections] = useState({
     basic: true,
+    location: true,
     allergies: true,
     emergency: true,
     contacts: true,
@@ -92,6 +106,17 @@ export default function EditProfileModal({ isOpen, onClose, user, onProfileUpdat
       }))
     );
 
+    const loc = user.location || {};
+    setAddress(loc.address || '');
+    setCity(loc.city || '');
+    setState(loc.state || '');
+    setCountry(loc.country || 'India');
+    setPostalCode(loc.postalCode || '');
+    setLatitude(loc.latitude ?? null);
+    setLongitude(loc.longitude ?? null);
+    setAccuracy(loc.accuracy ?? null);
+    setIsLocationAllowed(Boolean(loc.isAllowed));
+
     const info = user.emergencyInfo || {};
     setCriticalConditions(info.criticalConditions || []);
     setNotes(info.notes || '');
@@ -106,6 +131,72 @@ export default function EditProfileModal({ isOpen, onClose, user, onProfileUpdat
     setSpecialization(user.specialization || '');
     setLicenseNumber(user.licenseNumber || '');
   }, [isOpen, user]);
+
+  const handleRequestLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Not Supported', 'Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lon, accuracy: acc } = pos.coords;
+        setLatitude(lat);
+        setLongitude(lon);
+        setAccuracy(acc);
+        setIsLocationAllowed(true);
+
+        try {
+          const resp = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+          );
+          if (resp.ok) {
+            const data = await resp.json();
+            const addr = data.address || {};
+            const detectedCity = addr.city || addr.town || addr.village || addr.suburb || '';
+            const detectedState = addr.state || '';
+            const detectedCountry = addr.country || 'India';
+            const detectedPostal = addr.postcode || '';
+
+            if (detectedCity) setCity(detectedCity);
+            if (detectedState) setState(detectedState);
+            if (detectedCountry) setCountry(detectedCountry);
+            if (detectedPostal) setPostalCode(detectedPostal);
+            if (data.display_name && !address) setAddress(data.display_name);
+          }
+        } catch (revErr) {
+          console.warn('Reverse geocoding warning:', revErr.message);
+        }
+
+        toast.success(
+          'Location Allowed & Detected',
+          `Coordinates captured (${lat.toFixed(4)}, ${lon.toFixed(4)}).`
+        );
+        setDetectingLocation(false);
+      },
+      (err) => {
+        setDetectingLocation(false);
+        if (err.code === 1) {
+          toast.warning(
+            'Location Access Denied',
+            'Browser location permission was denied. You can manually enter your city and address.'
+          );
+        } else {
+          toast.error('Location Error', err.message || 'Could not fetch current coordinates.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  const handleRevokeLocation = () => {
+    setIsLocationAllowed(false);
+    setLatitude(null);
+    setLongitude(null);
+    setAccuracy(null);
+    toast.info('Location Access Revoked', 'Coordinates cleared. You can re-enable anytime.');
+  };
 
   if (!isOpen) return null;
 
@@ -157,6 +248,17 @@ export default function EditProfileModal({ isOpen, onClose, user, onProfileUpdat
         bloodGroup,
         allergies,
         emergencyContacts: emergencyContacts.filter((c) => c.name),
+        location: {
+          address: address.trim(),
+          city: city.trim(),
+          state: state.trim(),
+          country: country.trim(),
+          postalCode: postalCode.trim(),
+          latitude: latitude !== null ? Number(latitude) : undefined,
+          longitude: longitude !== null ? Number(longitude) : undefined,
+          accuracy: accuracy !== null ? Number(accuracy) : undefined,
+          isAllowed: isLocationAllowed,
+        },
       };
       if (user.role === 'doctor') {
         profilePayload.specialization = specialization;
@@ -190,6 +292,7 @@ export default function EditProfileModal({ isOpen, onClose, user, onProfileUpdat
       const updatedUser = profileRes.data || profileRes;
       toast.success('Profile Saved', 'Your health profile and emergency info have been updated.');
       if (onProfileUpdated) onProfileUpdated(updatedUser);
+      if (onUpdateSuccess) onUpdateSuccess(updatedUser);
       onClose();
     } catch (err) {
       toast.error('Save Failed', err.message || 'Could not update profile.');
@@ -276,6 +379,184 @@ export default function EditProfileModal({ isOpen, onClose, user, onProfileUpdat
                   ))}
                 </select>
               </div>
+            </div>
+          )}
+
+          {/* ── LOCATION & GEOLOCATION ── */}
+          <SectionHeader
+            icon={MapPin}
+            label="Location & Geolocation Services"
+            color="text-emerald-600"
+            expanded={openSections.location}
+            onToggle={() => toggleSection('location')}
+          />
+          {openSections.location && (
+            <div className="pt-3 pb-2 space-y-4">
+              {/* Permission Banner & Action Button */}
+              <div
+                className={`p-4 rounded-2xl border transition-all ${
+                  isLocationAllowed
+                    ? 'bg-emerald-50/70 border-emerald-200'
+                    : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        isLocationAllowed
+                          ? 'bg-emerald-500 text-white shadow-xs'
+                          : 'bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      <Navigation className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-bold text-navy-900">
+                          Browser Geolocation Access
+                        </h4>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                            isLocationAllowed
+                              ? 'bg-emerald-200/80 text-emerald-900'
+                              : 'bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {isLocationAllowed ? 'Allowed' : 'Not Allowed'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {isLocationAllowed
+                          ? latitude !== null && longitude !== null
+                            ? `GPS active: ${Number(latitude).toFixed(4)}, ${Number(longitude).toFixed(4)} (±${Math.round(accuracy || 0)}m)`
+                            : 'Location access is enabled for this profile.'
+                          : 'Allow browser location to auto-detect nearby doctors, emergency facilities, and clinic slots.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleRequestLocation}
+                      disabled={detectingLocation}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-xs ${
+                        isLocationAllowed
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          : 'bg-trust-600 hover:bg-trust-700 text-white'
+                      }`}
+                    >
+                      {detectingLocation ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Detecting GPS...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Compass className="w-3.5 h-3.5" />
+                          <span>{isLocationAllowed ? 'Update GPS' : 'Allow Location'}</span>
+                        </>
+                      )}
+                    </button>
+
+                    {isLocationAllowed && (
+                      <button
+                        type="button"
+                        onClick={handleRevokeLocation}
+                        className="px-2.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 text-xs font-semibold transition"
+                        title="Revoke location permission"
+                      >
+                        Revoke
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Location Fields Form */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                    Street Address / Landmark
+                  </label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="e.g. 42 Park Avenue, Connaught Place"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-trust-500 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                    City / Town
+                  </label>
+                  <input
+                    type="text"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="e.g. New Delhi"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-trust-500 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                    State / Region
+                  </label>
+                  <input
+                    type="text"
+                    value={state}
+                    onChange={(e) => setState(e.target.value)}
+                    placeholder="e.g. Delhi / Maharashtra"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-trust-500 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                    Postal / PIN Code
+                  </label>
+                  <input
+                    type="text"
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(e.target.value)}
+                    placeholder="e.g. 110001"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-trust-500 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                    Country
+                  </label>
+                  <input
+                    type="text"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="e.g. India"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-trust-500 transition"
+                  />
+                </div>
+              </div>
+
+              {/* Coordinates Preview (if available) */}
+              {latitude !== null && longitude !== null && (
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-100/70 text-slate-600 text-[11px] font-mono">
+                  <MapPin className="w-3.5 h-3.5 text-trust-600 shrink-0" />
+                  <span>Lat: {Number(latitude).toFixed(5)}</span>
+                  <span>•</span>
+                  <span>Lon: {Number(longitude).toFixed(5)}</span>
+                  {accuracy && (
+                    <>
+                      <span>•</span>
+                      <span className="text-slate-400">Accuracy: ±{Math.round(accuracy)}m</span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

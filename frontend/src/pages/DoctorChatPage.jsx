@@ -5,6 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { consultationsApi } from '../api/consultations';
 import { recordsApi } from '../api/records';
+import { appointmentsApi } from '../api/appointments';
+import BookAppointmentModal from '../components/appointments/BookAppointmentModal';
+import DoctorScheduleModal from '../components/appointments/DoctorScheduleModal';
 import {
   MessageSquare,
   Send,
@@ -39,22 +42,28 @@ export default function DoctorChatPage() {
   // Data states
   const [consultations, setConsultations] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [activeConsultation, setActiveConsultation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [myRecords, setMyRecords] = useState([]);
 
   // UI & Input states
-  const [activeTab, setActiveTab] = useState(isDoctor ? 'chats' : 'chats'); // 'chats' | 'doctors'
+  const [activeTab, setActiveTab] = useState('chats'); // 'chats' | 'appointments' | 'doctors'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialization, setSelectedSpecialization] = useState('all');
   const [messageInput, setMessageInput] = useState('');
   const [selectedRecordAttachment, setSelectedRecordAttachment] = useState(null);
   const [isRecordPickerOpen, setIsRecordPickerOpen] = useState(false);
   const [isPatientInfoModalOpen, setIsPatientInfoModalOpen] = useState(false);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState(null);
+  const [doctorAvailability, setDoctorAvailability] = useState(null);
 
   // Loading states
   const [loadingConsultations, setLoadingConsultations] = useState(true);
   const [loadingDoctors, setLoadingDoctors] = useState(false);
+  const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
 
@@ -78,28 +87,29 @@ export default function DoctorChatPage() {
   }, [messages]);
 
   // Load consultations list
-  const fetchConsultations = useCallback(async (selectFirst = false) => {
+  const fetchConsultations = useCallback(async (targetId = null) => {
     try {
       const res = await consultationsApi.getConsultations();
       const list = res.data || [];
       setConsultations(list);
 
-      // If requested to select first or if URL has consultationId
-      const paramId = searchParams.get('id');
-      if (paramId) {
-        const found = list.find((c) => c._id === paramId);
-        if (found) {
-          setActiveConsultation(found);
+      setActiveConsultation((prevActive) => {
+        const idToSelect = targetId || prevActive?._id;
+        if (idToSelect) {
+          const found = list.find((c) => c._id === idToSelect);
+          if (found) return found;
         }
-      } else if (selectFirst && list.length > 0 && !activeConsultation) {
-        setActiveConsultation(list[0]);
-      }
+        if (!prevActive && list.length > 0) {
+          return list[0];
+        }
+        return prevActive;
+      });
     } catch (err) {
       console.warn('Failed to load consultations:', err.message);
     } finally {
       setLoadingConsultations(false);
     }
-  }, [searchParams, activeConsultation]);
+  }, []);
 
   // Load available doctors for patients
   const fetchDoctors = useCallback(async () => {
@@ -125,13 +135,50 @@ export default function DoctorChatPage() {
     }
   }, [isAuthenticated, isDoctor]);
 
-  // Initial fetch on mount
+  // Load appointments
+  const fetchAppointments = useCallback(async () => {
+    setLoadingAppointments(true);
+    try {
+      const res = await appointmentsApi.getAppointments();
+      setAppointments(res.data || []);
+    } catch (err) {
+      console.warn('Failed to load appointments:', err.message);
+    } finally {
+      setLoadingAppointments(false);
+    }
+  }, []);
+
+  // Load doctor availability settings if user is doctor
+  const fetchDoctorAvailability = useCallback(async () => {
+    if (!isDoctor) return;
+    try {
+      const res = await appointmentsApi.getDoctorAvailability();
+      setDoctorAvailability(res.data);
+    } catch (err) {
+      console.warn('Failed to fetch doctor availability:', err.message);
+    }
+  }, [isDoctor]);
+
+  // Initial fetch on mount (run once when authenticated)
   useEffect(() => {
     if (isAuthenticated) {
-      fetchConsultations(true);
+      const initialId = searchParams.get('id');
+      fetchConsultations(initialId);
       fetchDoctors();
+      fetchAppointments();
+      fetchDoctorAvailability();
     }
-  }, [isAuthenticated, fetchConsultations, fetchDoctors]);
+  }, [isAuthenticated]);
+
+  const handleUpdateAppointmentStatus = async (appointmentId, status) => {
+    try {
+      await appointmentsApi.updateAppointmentStatus(appointmentId, { status });
+      toast.success('Status Updated', `Appointment marked as ${status}.`);
+      await fetchAppointments();
+    } catch (err) {
+      toast.error('Update Failed', err.message || 'Could not update status.');
+    }
+  };
 
   // Load messages whenever activeConsultation changes
   const fetchMessages = useCallback(async (consultationId, silent = false) => {
@@ -161,16 +208,20 @@ export default function DoctorChatPage() {
   useEffect(() => {
     if (activeConsultation?._id) {
       fetchMessages(activeConsultation._id);
-      // Sync URL query
-      setSearchParams({ id: activeConsultation._id });
+
+      // Only sync URL query if different to prevent searchParams re-render loops
+      const currentParamId = searchParams.get('id');
+      if (currentParamId !== activeConsultation._id) {
+        setSearchParams({ id: activeConsultation._id }, { replace: true });
+      }
 
       // Clear previous interval
       if (pollingRef.current) clearInterval(pollingRef.current);
 
-      // Start polling for real-time messages every 3.5 seconds
+      // Start polling for real-time messages every 4 seconds
       pollingRef.current = setInterval(() => {
         fetchMessages(activeConsultation._id, true);
-      }, 3500);
+      }, 4000);
 
       return () => {
         if (pollingRef.current) clearInterval(pollingRef.current);
@@ -178,7 +229,7 @@ export default function DoctorChatPage() {
     } else {
       setMessages([]);
     }
-  }, [activeConsultation?._id, fetchMessages, setSearchParams]);
+  }, [activeConsultation?._id, fetchMessages]);
 
   // Start or open a consultation with a doctor
   const handleStartConsultationWithDoctor = async (doctorId) => {
@@ -189,7 +240,7 @@ export default function DoctorChatPage() {
       if (consultation) {
         setActiveConsultation(consultation);
         setActiveTab('chats');
-        await fetchConsultations();
+        await fetchConsultations(consultation._id);
         toast.success(
           'Consultation Ready',
           `Connected with Dr. ${consultation.doctorId?.name || 'Doctor'}`
@@ -248,7 +299,7 @@ export default function DoctorChatPage() {
           prev.map((m) => (m._id === tempId ? res.data : m))
         );
       }
-      fetchConsultations();
+      fetchConsultations(activeConsultation._id);
     } catch (err) {
       toast.error('Send Failed', err.message || 'Could not send message.');
       setMessages((prev) => prev.filter((m) => m._id !== tempId));
@@ -281,6 +332,20 @@ export default function DoctorChatPage() {
       selectedSpecialization === 'all' ||
       doc.specialization?.toLowerCase() === selectedSpecialization.toLowerCase();
     return matchesSearch && matchesSpec;
+  });
+
+  // Filtered appointments list
+  const filteredAppointments = appointments.filter((apt) => {
+    if (!searchQuery) return true;
+    const term = searchQuery.toLowerCase();
+    const other = isDoctor ? apt.patientId?.name || '' : apt.doctorId?.name || '';
+    const cond = apt.primaryCondition || '';
+    const urgency = apt.urgency || '';
+    return (
+      other.toLowerCase().includes(term) ||
+      cond.toLowerCase().includes(term) ||
+      urgency.toLowerCase().includes(term)
+    );
   });
 
   const specializations = [
@@ -319,13 +384,33 @@ export default function DoctorChatPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {isDoctor && (
+              <button
+                onClick={() => setIsScheduleModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:text-navy-900 rounded-xl text-xs font-bold transition shadow-xs"
+                title="Manage Clinic Hours & Real-time Availability"
+              >
+                <Clock className="w-3.5 h-3.5 text-trust-600" />
+                <span>Clinic Schedule</span>
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    doctorAvailability?.isAvailableForBooking !== false
+                      ? 'bg-emerald-500'
+                      : 'bg-rose-500'
+                  }`}
+                  title={doctorAvailability?.isAvailableForBooking !== false ? 'Available' : 'Away'}
+                />
+              </button>
+            )}
+
             <button
               onClick={() => {
                 fetchConsultations();
+                fetchAppointments();
                 if (activeConsultation?._id) fetchMessages(activeConsultation._id);
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:text-navy-900 rounded-xl text-xs font-bold transition shadow-xs"
-              title="Refresh messages"
+              title="Refresh messages and appointments"
             >
               <RefreshCw className="w-3.5 h-3.5 text-trust-600" />
               <span>Refresh</span>
@@ -335,25 +420,54 @@ export default function DoctorChatPage() {
 
         {/* Chat Workspace (2-Column) */}
         <div className="flex-1 bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden flex flex-col md:flex-row min-h-[620px] max-h-[82vh]">
-          {/* Left Column: Sidebar (Conversations / Doctor Directory) */}
+          {/* Left Column: Sidebar (Conversations / Appointments / Doctor Directory) */}
           <div className="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-slate-200 flex flex-col bg-slate-50/50">
             {/* Top Navigation Tabs */}
             <div className="p-3 border-b border-slate-200 bg-white">
-              <div className="flex items-center p-1 bg-slate-100 rounded-xl">
+              <div className="flex items-center p-1 bg-slate-100 rounded-xl gap-1">
                 <button
                   type="button"
                   onClick={() => setActiveTab('chats')}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1 ${
                     activeTab === 'chats'
                       ? 'bg-white text-navy-900 shadow-xs'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Conversations</span>
+                  <span>Chats</span>
                   {consultations.length > 0 && (
                     <span className="px-1.5 py-0.2 bg-trust-100 text-trust-700 text-[10px] rounded-full font-bold">
                       {consultations.length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('appointments')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1 ${
+                    activeTab === 'appointments'
+                      ? 'bg-white text-navy-900 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Slots</span>
+                  {appointments.length > 0 && (
+                    <span
+                      className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold ${
+                        appointments.some(
+                          (a) =>
+                            a.urgency === 'CRITICAL' &&
+                            a.status !== 'completed' &&
+                            a.status !== 'cancelled'
+                        )
+                          ? 'bg-rose-100 text-rose-700 animate-pulse'
+                          : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {appointments.length}
                     </span>
                   )}
                 </button>
@@ -362,14 +476,14 @@ export default function DoctorChatPage() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('doctors')}
-                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1 ${
                       activeTab === 'doctors'
                         ? 'bg-white text-navy-900 shadow-xs'
                         : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
                     <Stethoscope className="w-3.5 h-3.5" />
-                    <span>Find Doctors</span>
+                    <span>Doctors</span>
                     {doctors.length > 0 && (
                       <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[10px] rounded-full font-bold">
                         {doctors.length}
@@ -520,6 +634,116 @@ export default function DoctorChatPage() {
                     );
                   })
                 )
+              ) : activeTab === 'appointments' ? (
+                /* Appointments Queue (Priority Sorted: Critical -> Urgent -> Routine) */
+                loadingAppointments ? (
+                  <div className="p-8 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+                    <RefreshCw className="w-5 h-5 animate-spin text-trust-600" />
+                    <span>Loading appointment triage queue...</span>
+                  </div>
+                ) : filteredAppointments.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400 text-xs space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                      <Calendar className="w-6 h-6" />
+                    </div>
+                    <p className="font-semibold text-slate-600">No appointments scheduled</p>
+                    <p className="text-[11px] text-slate-500">
+                      {isDoctor
+                        ? 'Patients triaged from X-rays will automatically appear in your queue.'
+                        : 'Upload an X-ray to auto-book based on clinical findings, or book directly with a doctor.'}
+                    </p>
+                  </div>
+                ) : (
+                  filteredAppointments.map((apt) => {
+                    const isCritical = apt.urgency === 'CRITICAL';
+                    const isUrgent = apt.urgency === 'URGENT';
+                    return (
+                      <div
+                        key={apt._id}
+                        className={`p-3 rounded-2xl border transition space-y-2 ${
+                          isCritical
+                            ? 'bg-rose-50/70 border-rose-200 hover:border-rose-300'
+                            : isUrgent
+                            ? 'bg-amber-50/60 border-amber-200 hover:border-amber-300'
+                            : 'bg-white border-slate-200/80 hover:border-trust-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
+                              isCritical
+                                ? 'bg-rose-600 text-white animate-pulse'
+                                : isUrgent
+                                ? 'bg-amber-500 text-white'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {isCritical && <AlertCircle className="w-3 h-3" />}
+                            {apt.urgency}
+                          </span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                              apt.status === 'confirmed'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : apt.status === 'completed'
+                                ? 'bg-slate-100 text-slate-600'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
+                            {apt.status}
+                          </span>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-bold text-navy-900">
+                            {isDoctor ? apt.patientId?.name || 'Patient' : `Dr. ${apt.doctorId?.name || 'Doctor'}`}
+                          </p>
+                          <p className="text-[11px] text-slate-600 font-medium">
+                            {apt.primaryCondition ? (
+                              <span>Finding: <strong className="text-navy-900">{apt.primaryCondition}</strong></span>
+                            ) : (
+                              'General Consultation'
+                            )}
+                          </p>
+                          <p className="text-[10px] font-mono text-slate-500 mt-0.5 flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-trust-600" />
+                            <span>{apt.timeSlot}</span> &bull; <span>{new Date(apt.appointmentDate).toLocaleDateString()}</span>
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 pt-1">
+                          {apt.consultationId && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const found = consultations.find((c) => c._id === apt.consultationId);
+                                if (found) {
+                                  setActiveConsultation(found);
+                                } else {
+                                  await fetchConsultations();
+                                }
+                                setActiveTab('chats');
+                              }}
+                              className="flex-1 py-1.5 px-2.5 rounded-xl bg-trust-600 hover:bg-trust-700 text-white text-xs font-bold flex items-center justify-center gap-1 transition shadow-xs"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              <span>Open Chat</span>
+                            </button>
+                          )}
+                          {isDoctor && apt.status !== 'completed' && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateAppointmentStatus(apt._id, 'completed')}
+                              className="py-1.5 px-2.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-bold transition border border-emerald-200"
+                            >
+                              Done
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )
               ) : (
                 /* Doctors Directory List */
                 loadingDoctors ? (
@@ -558,22 +782,51 @@ export default function DoctorChatPage() {
                             <p className="text-[11px] text-trust-600 font-semibold truncate">
                               {doc.specialization || 'General Physician'}
                             </p>
-                            {doc.licenseNumber && (
-                              <p className="text-[10px] text-slate-400 truncate">
-                                Lic: {doc.licenseNumber}
-                              </p>
-                            )}
+                            <div className="flex items-center gap-2 mt-0.5 text-[10px]">
+                              <span
+                                className={`inline-flex items-center gap-1 font-bold ${
+                                  doc.isAvailableForBooking !== false
+                                    ? 'text-emerald-700'
+                                    : 'text-slate-400'
+                                }`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    doc.isAvailableForBooking !== false
+                                      ? 'bg-emerald-500'
+                                      : 'bg-slate-400'
+                                  }`}
+                                />
+                                {doc.isAvailableForBooking !== false ? 'Available' : 'Away'}
+                              </span>
+                              {doc.consultationFee !== undefined && (
+                                <span className="text-slate-400 font-mono">₹{doc.consultationFee}</span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => handleStartConsultationWithDoctor(doc._id)}
-                          className="w-full py-1.5 px-3 rounded-xl bg-trust-600 hover:bg-trust-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-xs"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span>Consult Doctor</span>
-                        </button>
+                        <div className="flex items-center gap-1.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleStartConsultationWithDoctor(doc._id)}
+                            className="flex-1 py-1.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1 transition active:scale-95 shadow-xs"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>Chat</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedDoctorForBooking(doc);
+                              setIsBookingModalOpen(true);
+                            }}
+                            className="flex-1 py-1.5 px-2 rounded-xl bg-trust-600 hover:bg-trust-700 text-white text-xs font-bold flex items-center justify-center gap-1 transition active:scale-95 shadow-xs"
+                          >
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>Book Slot</span>
+                          </button>
+                        </div>
                       </div>
                     );
                   })
@@ -984,6 +1237,30 @@ export default function DoctorChatPage() {
           </div>
         </div>
       )}
+
+      {/* Appointment Booking Modal */}
+      <BookAppointmentModal
+        isOpen={isBookingModalOpen}
+        onClose={() => {
+          setIsBookingModalOpen(false);
+          setSelectedDoctorForBooking(null);
+        }}
+        doctor={selectedDoctorForBooking}
+        onBookingSuccess={() => {
+          fetchAppointments();
+          fetchConsultations();
+        }}
+      />
+
+      {/* Doctor Schedule & Availability Modal */}
+      <DoctorScheduleModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        onScheduleUpdated={(updated) => {
+          setDoctorAvailability(updated);
+          fetchDoctors();
+        }}
+      />
     </div>
   );
 }

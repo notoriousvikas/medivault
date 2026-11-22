@@ -55,7 +55,7 @@ export default function EmergencyPublicPage() {
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-trust-600 text-white text-xs font-bold"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Return to MediVault</span>
+            <span>Return to AyuRaksha</span>
           </Link>
         </div>
       </div>
@@ -207,7 +207,7 @@ export default function EmergencyPublicPage() {
       </div>
 
       <div className="max-w-3xl mx-auto w-full pt-8 text-center text-xs text-slate-500">
-        MediVault Emergency Access Protocol • Cryptographically Logged
+        AyuRaksha (Life Saver) Emergency Access Protocol • Cryptographically Logged
       </div>
     </div>
   );

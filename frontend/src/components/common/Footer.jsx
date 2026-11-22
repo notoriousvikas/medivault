@@ -12,10 +12,11 @@ export default function Footer() {
               <div className="w-9 h-9 rounded-xl bg-trust-600 flex items-center justify-center text-white">
                 <ShieldCheck className="w-5 h-5" />
               </div>
-              <span className="font-extrabold text-xl tracking-tight text-white">MediVault</span>
+              <span className="font-extrabold text-xl tracking-tight text-white">AyuRaksha</span>
+              <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Life Saver</span>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
-              Secure, decentralized Electronic Health Record (EHR) management with emergency instant-response QR protocols and Aarogya AI medical intelligence.
+              Secure, decentralized Electronic Health Record (EHR) management with emergency instant-response QR protocols, DenseNet-121 radiology triage, and AI medical intelligence.
             </p>
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <Lock className="w-3.5 h-3.5 text-emerald-400" />
@@ -46,7 +47,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-          <p>© {new Date().getFullYear()} MediVault Technologies. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} AyuRaksha Technologies. All rights reserved.</p>
           <p className="flex items-center gap-1">
             Built for modern clinical resilience with <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
           </p>

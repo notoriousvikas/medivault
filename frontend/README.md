@@ -1,6 +1,6 @@
-# MediVault Frontend
+# AyuRaksha Frontend
 
-Production-ready, highly aesthetic, clinical-grade Web Application for **MediVault** — a secure, decentralized Electronic Health Record (EHR) and AI-driven medical intelligence platform.
+Production-ready, highly aesthetic, clinical-grade Web Application for **AyuRaksha** ("Life Saver") — a secure, decentralized Electronic Health Record (EHR), DenseNet-121 radiology triage, and AI-driven medical intelligence platform.
 
 Designed with inspiration from modern SaaS standards (Stripe meets Epic Systems) and 3D visual aesthetic templates.
 

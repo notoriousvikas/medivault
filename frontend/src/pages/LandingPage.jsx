@@ -26,7 +26,7 @@ export default function LandingPage() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-3">
         <div className="w-10 h-10 border-4 border-trust-600 border-t-transparent rounded-full animate-spin" />
         <p className="text-xs font-bold text-slate-500 tracking-wide uppercase">
-          Loading MediVault...
+          Loading AyuRaksha...
         </p>
       </div>
     );

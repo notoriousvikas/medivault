@@ -6,13 +6,47 @@ export const chatApi = {
     return res.data;
   },
 
-  sendMessage: async ({ message, category = 'general', referenceId, referenceType = 'None' }) => {
+  sendMessage: async ({ message, category = 'general', referenceId, referenceType = 'None', languageCode }) => {
     const res = await api.post('/chat', {
       message,
       category,
       referenceId,
       referenceType,
+      languageCode,
     });
+    return res.data;
+  },
+
+  sendVoiceMessage: async (formData) => {
+    const res = await api.post('/chat/voice', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  },
+
+  transcribeAudio: async (formData) => {
+    const res = await api.post('/chat/transcribe', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  },
+
+  synthesizeSpeech: async ({ text, languageCode = 'hi-IN', speaker = 'shubh_enhi_ads', pace = 1.0 }) => {
+    const res = await api.post('/chat/synthesize', {
+      text,
+      languageCode,
+      speaker,
+      pace,
+    });
+    return res.data;
+  },
+
+  getLanguages: async () => {
+    const res = await api.get('/chat/languages');
     return res.data;
   },
 

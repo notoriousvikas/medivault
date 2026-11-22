@@ -5,12 +5,13 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem('medivault_token'));
+  const getStoredToken = () => localStorage.getItem('ayuraksha_token') || localStorage.getItem('medivault_token');
+  const [token, setToken] = useState(getStoredToken);
   const [isLoading, setIsLoading] = useState(true);
 
   // Hydrate user profile on load
   const refreshUser = useCallback(async () => {
-    const savedToken = localStorage.getItem('medivault_token');
+    const savedToken = getStoredToken();
     if (!savedToken) {
       setUser(null);
       setIsLoading(false);
@@ -25,6 +26,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.warn('Failed to hydrate user from session:', err.message);
       // If token is invalid or expired
+      localStorage.removeItem('ayuraksha_token');
       localStorage.removeItem('medivault_token');
       setToken(null);
       setUser(null);
@@ -46,6 +48,7 @@ export function AuthProvider({ children }) {
       const authUser = res.data?.user || res.user || res.data;
 
       if (authToken) {
+        localStorage.setItem('ayuraksha_token', authToken);
         localStorage.setItem('medivault_token', authToken);
         setToken(authToken);
       }
@@ -68,6 +71,7 @@ export function AuthProvider({ children }) {
       const authUser = res.data?.user || res.user || res.data;
 
       if (authToken) {
+        localStorage.setItem('ayuraksha_token', authToken);
         localStorage.setItem('medivault_token', authToken);
         setToken(authToken);
       }
@@ -83,6 +87,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    localStorage.removeItem('ayuraksha_token');
     localStorage.removeItem('medivault_token');
     setToken(null);
     setUser(null);

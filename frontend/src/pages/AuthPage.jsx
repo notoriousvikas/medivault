@@ -39,9 +39,13 @@ export default function AuthPage() {
 
     try {
       if (mode === 'login') {
-        await login(email, password);
+        const res = await login(email, password);
         toast.success('Welcome back!', 'Successfully authenticated to your medical vault.');
-        navigate('/dashboard');
+        if (res?.user?.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         // Parse allergies into array
         const allergyList = allergies
@@ -60,9 +64,13 @@ export default function AuthPage() {
           licenseNumber: role === 'doctor' ? licenseNumber : undefined,
         };
 
-        await register(registerPayload);
+        const res = await register(registerPayload);
         toast.success('Account Created', 'Your decentralized medical vault has been provisioned.');
-        navigate('/dashboard');
+        if (res?.user?.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (err) {
       toast.error('Authentication Error', err.message || 'Failed to authenticate. Please verify credentials.');
@@ -74,23 +82,23 @@ export default function AuthPage() {
   // Quick 1-Click Demo Credential fill
   const handleQuickDemo = (demoRole) => {
     if (demoRole === 'patient') {
-      setEmail('patient@medivault.io');
+      setEmail('vikaskbaboria@gmail.com');
       setPassword('Password123!');
       setRole('patient');
       setMode('login');
       toast.info('Demo Credentials Loaded', 'Patient credentials auto-filled. Click "Sign In" or submit.');
     } else if (demoRole === 'doctor') {
-      setEmail('doctor@medivault.io');
+      setEmail('vikasbaboria12@gmail.com');
       setPassword('Password123!');
       setRole('doctor');
       setMode('login');
-      toast.info('Demo Credentials Loaded', 'Doctor credentials auto-filled. Click "Sign In" or submit.');
+      toast.info('Demo Credentials Loaded', 'Doctor credentials auto-filled (Dr. Anmol Singh). Click "Sign In" to open Doctor Portal.');
     } else if (demoRole === 'admin') {
-      setEmail('admin@medivault.io');
+      setEmail('admin@ayuraksha.io');
       setPassword('Password123!');
-      setRole('patient');
+      setRole('admin');
       setMode('login');
-      toast.info('Demo Credentials Loaded', 'Admin credentials auto-filled. Click "Sign In" or submit.');
+      toast.info('Demo Credentials Loaded', 'Admin credentials auto-filled. Click "Sign In" to open Admin Portal.');
     }
   };
 
@@ -119,7 +127,10 @@ export default function AuthPage() {
           <div className="w-12 h-12 rounded-2xl bg-trust-600 text-white flex items-center justify-center shadow-lg shadow-trust-600/30">
             <ShieldCheck className="w-7 h-7 stroke-[2.2]" />
           </div>
-          <span className="text-2xl font-extrabold text-navy-900 tracking-tight">MediVault</span>
+          <div className="flex flex-col items-start">
+            <span className="text-2xl font-extrabold text-navy-900 tracking-tight">AyuRaksha</span>
+            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-600">Life Saver</span>
+          </div>
         </Link>
         <h2 className="text-2xl font-bold text-navy-900 tracking-tight">
           {mode === 'login' ? 'Access your medical vault' : 'Create your decentralized EHR'}
@@ -251,7 +262,7 @@ export default function AuthPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@medivault.io"
+                  placeholder="name@ayuraksha.io"
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-trust-500 transition"
                 />
               </div>

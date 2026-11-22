@@ -1,7 +1,7 @@
 import { AppError } from '../middleware/error.middleware.js';
 
 const GROQ_API_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+const DEFAULT_MODEL = 'openai/gpt-oss-20b';
 
 /**
  * Execute a chat completion request to the Groq API.
@@ -69,6 +69,22 @@ async function callGroqChat({
     const errorMsg =
       data?.error?.message ||
       `Groq API responded with status ${response.status} (${response.statusText})`;
+
+    // Automatic resilience: If primary model hits rate limit or capacity, retry with alternative accessible model
+    if (
+      (response.status === 429 || errorMsg.toLowerCase().includes('rate limit')) &&
+      model !== 'qwen/qwen3.8-27b'
+    ) {
+      console.warn(`[Groq] Rate limit on ${model}, falling back to qwen/qwen3.8-27b`);
+      return callGroqChat({
+        messages,
+        model: 'qwen/qwen3.8-27b',
+        temperature,
+        maxTokens,
+        responseFormat,
+      });
+    }
+
     throw new AppError(`Groq API Error: ${errorMsg}`, response.status >= 500 ? 502 : 400);
   }
 

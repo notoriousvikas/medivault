@@ -23,8 +23,10 @@ import {
   Trash2,
   Clock,
   Activity,
-  ArrowRight
+  ArrowRight,
+  Radio,
 } from 'lucide-react';
+import AreaHealthMonitoringView from '../components/dashboard/AreaHealthMonitoringView';
 
 export default function AdminPage() {
   const { user, isLoading } = useAuth();
@@ -328,6 +330,19 @@ export default function AdminPage() {
               {users.length}
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('area-alerts')}
+            className={`flex items-center gap-2 pb-3 px-3 text-sm font-bold border-b-2 transition ${
+              activeTab === 'area-alerts'
+                ? 'border-trust-600 text-trust-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Radio className="w-4 h-4 text-rose-500" />
+            <span>Area Health Clusters</span>
+          </button>
         </div>
 
         {/* TAB 1: Pending Doctor Approvals */}
@@ -630,6 +645,11 @@ export default function AdminPage() {
               </table>
             </div>
           </div>
+        )}
+
+        {/* TAB 4: Area Health Risk Clusters & Anomaly Detection */}
+        {activeTab === 'area-alerts' && (
+          <AreaHealthMonitoringView />
         )}
 
       </main>

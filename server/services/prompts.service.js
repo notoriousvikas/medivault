@@ -325,12 +325,12 @@ Otherwise, give a simple, concise, and direct answer to the user's health questi
     },
   ];
 
-  // Append recent conversational turns
-  for (const turn of chatHistory.slice(-8)) {
+  // Append recent conversational turns (compacted for high-speed live conversational response)
+  for (const turn of chatHistory.slice(-4)) {
     if (['user', 'assistant'].includes(turn.role)) {
       messages.push({
         role: turn.role,
-        content: turn.content,
+        content: turn.role === 'assistant' ? turn.content.slice(0, 350) : turn.content,
       });
     }
   }

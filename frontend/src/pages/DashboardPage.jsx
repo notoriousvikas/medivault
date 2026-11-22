@@ -11,6 +11,7 @@ import SplitRecordViewerModal from '../components/records/SplitRecordViewerModal
 import AiChatAssistantDrawer from '../components/dashboard/AiChatAssistantDrawer';
 import EditProfileModal from '../components/profile/EditProfileModal';
 import DoctorDashboardView from '../components/dashboard/DoctorDashboardView';
+import AreaHealthMonitoringView from '../components/dashboard/AreaHealthMonitoringView';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { recordsApi } from '../api/records';
@@ -41,6 +42,8 @@ import {
   Lock,
   MapPin,
   Navigation,
+  Radio,
+  PhoneCall,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -71,6 +74,7 @@ export default function DashboardPage() {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [chatReferenceRecord, setChatReferenceRecord] = useState(null);
+  const [openLiveVoiceImmediately, setOpenLiveVoiceImmediately] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -435,6 +439,33 @@ export default function DashboardPage() {
                 </span>
               </button>
 
+              {/* Area Health Alerts */}
+              <button
+                onClick={() => {
+                  setActiveView('area-alerts');
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition group ${
+                  activeView === 'area-alerts'
+                    ? 'bg-trust-600 text-white shadow-sm shadow-trust-600/30'
+                    : 'text-slate-600 hover:bg-slate-100/80 hover:text-navy-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Radio className={`w-4 h-4 ${activeView === 'area-alerts' ? 'text-white' : 'text-rose-500'}`} />
+                  <span>Area Health Alerts</span>
+                </div>
+                <span
+                  className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
+                    activeView === 'area-alerts'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-rose-100 text-rose-800'
+                  }`}
+                >
+                  Cluster AI
+                </span>
+              </button>
+
               {/* Doctor Chat / Consultations */}
               <Link
                 to="/consultations"
@@ -472,19 +503,34 @@ export default function DashboardPage() {
                 <span className="text-xs font-extrabold tracking-wide">Aarogya AI Copilot</span>
               </div>
               <p className="text-[11px] text-indigo-100 leading-relaxed font-medium">
-                Ask medical questions, review scans, or check drug safety anytime.
+                Ask medical questions or start hands-free Live Audio Call anytime.
               </p>
-              <button
-                onClick={() => {
-                  setSidebarOpen(false);
-                  setChatReferenceRecord(null);
-                  setIsAiChatOpen(true);
-                }}
-                className="w-full py-2 px-3 rounded-xl bg-white text-indigo-700 font-extrabold text-xs hover:bg-indigo-50 transition shadow-sm flex items-center justify-center gap-1.5"
-              >
-                <Bot className="w-3.5 h-3.5" />
-                <span>Open AI Chat</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2 pt-0.5">
+                <button
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    setChatReferenceRecord(null);
+                    setOpenLiveVoiceImmediately(false);
+                    setIsAiChatOpen(true);
+                  }}
+                  className="py-2 px-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs transition flex items-center justify-center gap-1 border border-white/20"
+                >
+                  <Bot className="w-3.5 h-3.5" />
+                  <span>Text Chat</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    setChatReferenceRecord(null);
+                    setOpenLiveVoiceImmediately(true);
+                    setIsAiChatOpen(true);
+                  }}
+                  className="py-2 px-2 rounded-xl bg-white text-emerald-800 font-extrabold text-xs hover:bg-emerald-50 transition shadow-sm flex items-center justify-center gap-1"
+                >
+                  <PhoneCall className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                  <span>Live Call</span>
+                </button>
+              </div>
             </div>
 
           </div>
@@ -528,11 +574,13 @@ export default function DashboardPage() {
                   {activeView === 'grid' && (activeTab === 'Scan' ? 'Imaging Scans & X-Rays' : 'Medical Records Vault')}
                   {activeView === 'timeline' && 'Chronological Medical Timeline'}
                   {activeView === 'prescriptions' && 'AI Prescriptions & Safety Checks'}
+                  {activeView === 'area-alerts' && 'Area Health Risk Detection & Alerts'}
                 </h2>
                 <p className="text-xs text-slate-500">
                   {activeView === 'grid' && `Stored & verified clinical documents (${filteredRecords.length})`}
                   {activeView === 'timeline' && `Aggregated health events & diagnostics (${timelineEvents.length})`}
                   {activeView === 'prescriptions' && `Active pharmacy medications & drug evaluations (${prescriptions.length})`}
+                  {activeView === 'area-alerts' && 'Automated geospatial anomaly screening & community health cluster alerts'}
                 </p>
               </div>
             </div>
@@ -703,21 +751,48 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* VIEW 4: Area Health Risk Detection & Alerts */}
+          {activeView === 'area-alerts' && (
+            <AreaHealthMonitoringView
+              onOpenAiChat={() => {
+                setChatReferenceRecord(null);
+                setIsAiChatOpen(true);
+              }}
+            />
+          )}
+
         </main>
       </div>
 
       {/* ── Persistent Floating AI Chat Trigger (Aligned with Navbar / max-w-7xl layout) ── */}
       <div className="fixed bottom-6 inset-x-0 pointer-events-none z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-end">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-end gap-2.5">
+          {/* Direct Live Audio Call Button */}
           <button
             onClick={() => {
               setChatReferenceRecord(null);
+              setOpenLiveVoiceImmediately(true);
+              setIsAiChatOpen(true);
+            }}
+            className="pointer-events-auto inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-600/30 hover:scale-105 active:scale-95 transition-all border border-emerald-400/30"
+            title="Start Continuous Live Audio Call with Aarogya AI"
+          >
+            <PhoneCall className="w-4 h-4 text-white animate-pulse" />
+            <span className="hidden sm:inline">Live Audio Call</span>
+            <span className="sm:hidden">Live Call</span>
+          </button>
+
+          {/* Standard Ask Aarogya AI Button */}
+          <button
+            onClick={() => {
+              setChatReferenceRecord(null);
+              setOpenLiveVoiceImmediately(false);
               setIsAiChatOpen(true);
             }}
             className="pointer-events-auto inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-trust-600 via-indigo-600 to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-xl shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all"
             title="Open Aarogya AI Medical Assistant"
           >
-            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+            <Sparkles className="w-4 h-4 text-amber-300" />
             <span>Ask Aarogya AI</span>
           </button>
         </div>
@@ -750,6 +825,7 @@ export default function DashboardPage() {
         onRecordUpdated={handleRecordAnalyzed}
         onOpenAiChat={(rec) => {
           setChatReferenceRecord(rec);
+          setOpenLiveVoiceImmediately(false);
           setIsAiChatOpen(true);
         }}
       />
@@ -759,8 +835,10 @@ export default function DashboardPage() {
         onClose={() => {
           setIsAiChatOpen(false);
           setChatReferenceRecord(null);
+          setOpenLiveVoiceImmediately(false);
         }}
         referenceRecord={chatReferenceRecord}
+        initialOpenLive={openLiveVoiceImmediately}
       />
 
       <EditProfileModal

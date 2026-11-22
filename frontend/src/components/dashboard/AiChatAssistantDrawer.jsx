@@ -19,10 +19,12 @@ import {
   ArrowRight,
   AlertCircle,
   Radio,
+  PhoneCall,
 } from 'lucide-react';
 import { chatApi } from '../../api/chat';
 import { useToast } from '../../context/ToastContext';
 import FormattedAiText from '../common/FormattedAiText';
+import LiveAudioChatOverlay from './LiveAudioChatOverlay';
 
 // Centralized multilingual catalog supported by Sarvam Saaras & Bulbul
 const SARVAM_LANGUAGES = [
@@ -40,7 +42,12 @@ const SARVAM_LANGUAGES = [
   { code: 'od-IN', name: 'Odia', nativeName: 'ଓଡ଼ିଆ', flag: '🇮🇳' },
 ];
 
-export default function AiChatAssistantDrawer({ isOpen, onClose, referenceRecord = null }) {
+export default function AiChatAssistantDrawer({
+  isOpen,
+  onClose,
+  referenceRecord = null,
+  initialOpenLive = false,
+}) {
   const toast = useToast();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -52,6 +59,13 @@ export default function AiChatAssistantDrawer({ isOpen, onClose, referenceRecord
   const [voiceStage, setVoiceStage] = useState('');
   const [playingMessageId, setPlayingMessageId] = useState(null);
   const [synthesizingId, setSynthesizingId] = useState(null);
+  const [isLiveAudioOpen, setIsLiveAudioOpen] = useState(initialOpenLive);
+
+  useEffect(() => {
+    if (initialOpenLive && isOpen) {
+      setIsLiveAudioOpen(true);
+    }
+  }, [initialOpenLive, isOpen]);
 
   // Audio elements and media streams
   const messagesEndRef = useRef(null);
@@ -451,9 +465,10 @@ export default function AiChatAssistantDrawer({ isOpen, onClose, referenceRecord
     SARVAM_LANGUAGES.find((l) => l.code === selectedLanguage) || SARVAM_LANGUAGES[0];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-navy-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col border-l border-slate-200">
+    <>
+      <div className="fixed inset-0 z-40 overflow-hidden bg-navy-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+          <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col border-l border-slate-200">
           {/* Header */}
           <div className="px-5 py-4 bg-gradient-to-r from-navy-900 via-slate-900 to-indigo-950 text-white flex items-center justify-between shrink-0 shadow-md">
             <div className="flex items-center gap-2.5">
@@ -474,7 +489,19 @@ export default function AiChatAssistantDrawer({ isOpen, onClose, referenceRecord
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  stopActiveAudio();
+                  setIsLiveAudioOpen(true);
+                }}
+                className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-[11px] shadow-sm flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 border border-emerald-400/40"
+                title="Start Continuous Hands-Free Live Audio Call"
+              >
+                <PhoneCall className="w-3.5 h-3.5 text-white animate-pulse" />
+                <span className="hidden sm:inline">Live Call</span>
+              </button>
               <button
                 onClick={handleClearHistory}
                 className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition"
@@ -553,8 +580,36 @@ export default function AiChatAssistantDrawer({ isOpen, onClose, referenceRecord
                   </p>
                 </div>
 
+                {/* Live Voice Call Action Banner */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    stopActiveAudio();
+                    setIsLiveAudioOpen(true);
+                  }}
+                  className="w-full p-3 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 hover:from-emerald-100 hover:via-teal-100 hover:to-indigo-100 border border-emerald-200/80 text-left transition flex items-center justify-between group shadow-xs"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-sm">
+                      <PhoneCall className="w-4 h-4 animate-pulse" />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-xs text-navy-900 flex items-center gap-1.5">
+                        <span>Start Hands-Free Live Voice Call</span>
+                        <span className="px-1.5 py-0.2 rounded bg-emerald-600 text-[9px] font-mono font-bold text-white uppercase">
+                          Live Audio
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Speak continuously in Hindi, English, or your native language.
+                      </p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-emerald-600 group-hover:translate-x-1 transition" />
+                </button>
+
                 {/* Prompt suggestions */}
-                <div className="space-y-1.5 pt-2">
+                <div className="space-y-1.5 pt-1">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                     Suggested Inquiries:
                   </span>
@@ -773,18 +828,44 @@ export default function AiChatAssistantDrawer({ isOpen, onClose, referenceRecord
                 className="flex-1 px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-trust-500/20 focus:border-trust-600"
               />
 
-              {/* Send Button */}
-              <button
-                type="submit"
-                disabled={!input.trim() || loading || isRecording}
-                className="p-2.5 bg-trust-600 text-white rounded-xl hover:bg-trust-700 transition disabled:opacity-40 shrink-0 shadow-sm"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </form>
+                {/* Live Audio Call Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    stopActiveAudio();
+                    cancelRecording();
+                    setIsLiveAudioOpen(true);
+                  }}
+                  disabled={loading}
+                  title="Start Continuous Live Audio Call with Aarogya AI"
+                  className="p-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-sm transition flex items-center justify-center shrink-0 hover:scale-105 active:scale-95"
+                >
+                  <PhoneCall className="w-4 h-4 text-white animate-pulse" />
+                </button>
+
+                {/* Send Button */}
+                <button
+                  type="submit"
+                  disabled={!input.trim() || loading || isRecording}
+                  className="p-2.5 bg-trust-600 text-white rounded-xl hover:bg-trust-700 transition disabled:opacity-40 shrink-0 shadow-sm"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Live Audio Call Overlay rendered outside drawer hierarchy at full viewport level */}
+      <LiveAudioChatOverlay
+        isOpen={isLiveAudioOpen}
+        onClose={() => setIsLiveAudioOpen(false)}
+        referenceRecord={referenceRecord}
+        initialLanguage={selectedLanguage}
+        onNewMessage={(newMsg) => setMessages((prev) => [...prev, newMsg])}
+        existingMessages={messages}
+      />
+    </>
   );
 }

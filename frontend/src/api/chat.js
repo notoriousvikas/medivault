@@ -17,6 +17,19 @@ export const chatApi = {
     return res.data;
   },
 
+  liveTurn: async (data, isFormData = false) => {
+    if (isFormData) {
+      const res = await api.post('/chat/live-turn', data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return res.data;
+    }
+    const res = await api.post('/chat/live-turn', data);
+    return res.data;
+  },
+
   sendVoiceMessage: async (formData) => {
     const res = await api.post('/chat/voice', formData, {
       headers: {

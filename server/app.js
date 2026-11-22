@@ -11,6 +11,7 @@ import consultationRoutes from './modules/consultations/consultation.routes.js';
 import emergencyRoutes from './modules/emergency/emergency.routes.js';
 import aiRoutes from './modules/ai/ai.routes.js';
 import appointmentRoutes from './modules/appointments/appointment.routes.js';
+import healthRiskRoutes from './modules/health-risk/health-risk.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 
 const app = express();
@@ -53,6 +54,7 @@ app.use('/api/consultations', consultationRoutes);
 app.use('/api/emergency', emergencyRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/health-risk', healthRiskRoutes);
 // Direct shortcut so scanned physical QR codes can hit /emergency/:token
 app.use('/emergency', emergencyRoutes);
 

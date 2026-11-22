@@ -8,6 +8,7 @@ import {
   synthesizeSpeech,
   SARVAM_SUPPORTED_LANGUAGES,
 } from '../../services/sarvam.service.js';
+import { recordSymptomFromChat } from '../health-risk/health-risk.controller.js';
 
 /**
  * Shared core AI query processing:
@@ -72,6 +73,15 @@ async function processRagChatQuery({
       languageCode: preferredLanguage || 'en-IN',
     },
   });
+
+  // 6. Passively extract symptoms from patient conversation for area-based health cluster detection
+  recordSymptomFromChat({
+    userId,
+    message: message.trim(),
+    preferredLanguage,
+  }).catch((err) =>
+    console.warn('[HealthRisk] Chat symptom passive extraction warning:', err.message)
+  );
 
   return {
     userChat,
@@ -352,9 +362,115 @@ const deleteChatMessage = catchAsync(async (req, res) => {
   res.status(204).end();
 });
 
+/**
+ * Optimized Live Turn for Real-time Voice Chat:
+ * Accepts either pre-transcribed text (from Web Speech API) OR uploaded audio file (multipart).
+ * Immediately processes query through RAG Groq pipeline and synthesizes speech via Sarvam Bulbul TTS.
+ * This guarantees lightning-fast sub-second turns during live audio calls.
+ * POST /api/chat/live-turn
+ */
+const liveTurn = catchAsync(async (req, res) => {
+  const userId = req.user.userId;
+  let text = req.body?.message || '';
+  let detectedLang = req.body?.languageCode || 'auto';
+  let sttRequestId = null;
+
+  // If audio file was uploaded
+  if (req.file && req.file.buffer) {
+    const sttResult = await transcribeAudio({
+      fileBuffer: req.file.buffer,
+      filename: req.file.originalname || 'live_voice.wav',
+      contentType: req.file.mimetype || 'audio/wav',
+      languageCode: detectedLang !== 'auto' ? detectedLang : undefined,
+    });
+    text = (sttResult.transcript || '').trim();
+    detectedLang = sttResult.languageCode || detectedLang;
+    sttRequestId = sttResult.requestId;
+  }
+
+  if (!text || typeof text !== 'string' || !text.trim()) {
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        transcript: '',
+        reply: 'I could not hear any speech clearly. Could you please repeat that?',
+        audio: null,
+      },
+    });
+  }
+
+  const {
+    category = 'general',
+    referenceId,
+    referenceType = 'None',
+    speaker = 'shubh_enhi_ads',
+    pace = 1.05,
+  } = req.body || {};
+
+  const activeLanguage =
+    detectedLang && detectedLang !== 'auto' && detectedLang !== 'unknown'
+      ? detectedLang
+      : /[\u0900-\u097F]/.test(text)
+      ? 'hi-IN'
+      : 'en-IN';
+
+  // Grounded RAG + Groq AI completion
+  const { assistantChat } = await processRagChatQuery({
+    userId,
+    message: text.trim(),
+    category,
+    referenceId,
+    referenceType,
+    preferredLanguage: activeLanguage,
+  });
+
+  // Synthesize response into natural speech
+  let ttsResult = null;
+  try {
+    ttsResult = await synthesizeSpeech({
+      text: assistantChat.content,
+      languageCode: activeLanguage,
+      speaker: speaker || 'shubh_enhi_ads',
+      pace: Math.max(0.8, Math.min(1.5, Number(pace) || 1.05)),
+    });
+  } catch (ttsErr) {
+    console.warn('Live turn Sarvam TTS warning, falling back to text:', ttsErr.message);
+  }
+
+  if (ttsResult) {
+    assistantChat.metadata = {
+      ...(assistantChat.metadata || {}),
+      sarvam: {
+        sttRequestId,
+        ttsRequestId: ttsResult.requestId,
+        languageCode: activeLanguage,
+        speaker: ttsResult.speaker,
+      },
+      liveAudio: true,
+    };
+    await assistantChat.save();
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      transcript: text.trim(),
+      reply: assistantChat.content,
+      languageCode: activeLanguage,
+      audio: ttsResult?.audioDataUrl || null,
+      messageId: assistantChat._id,
+      category: assistantChat.category,
+      contextUsed: assistantChat.contextUsed,
+      createdAt: assistantChat.createdAt,
+      metadata: assistantChat.metadata,
+    },
+  });
+});
+
 export {
   sendMessage,
   voiceConversation,
+  liveTurn,
   transcribeAudioOnly,
   synthesizeSpeechOnly,
   getSupportedLanguages,

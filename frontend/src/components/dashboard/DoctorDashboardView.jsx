@@ -27,6 +27,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import DoctorScheduleModal from '../appointments/DoctorScheduleModal';
 import EditDoctorProfileModal from '../profile/EditDoctorProfileModal';
+import AreaHealthMonitoringView from './AreaHealthMonitoringView';
 
 export default function DoctorDashboardView() {
   const { user } = useAuth();
@@ -447,6 +448,7 @@ export default function DoctorDashboardView() {
                 { id: 'CRITICAL', label: `🚨 Critical (${criticalAppointments.length})` },
                 { id: 'today', label: 'Today' },
                 { id: 'completed', label: 'Completed' },
+                { id: 'clusters', label: '🌐 Area Health Alerts' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -473,9 +475,14 @@ export default function DoctorDashboardView() {
           </div>
         </div>
 
-        {/* Queue List */}
-        <div className="divide-y divide-slate-100">
-          {loading ? (
+        {/* Queue List / Clusters View */}
+        {selectedFilter === 'clusters' ? (
+          <div className="p-6">
+            <AreaHealthMonitoringView />
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {loading ? (
             <div className="p-12 text-center text-slate-400 space-y-2">
               <RefreshCw className="w-6 h-6 animate-spin mx-auto text-trust-600" />
               <p className="text-xs">Loading patient appointments...</p>
@@ -673,7 +680,8 @@ export default function DoctorDashboardView() {
             })
           )}
         </div>
-      </div>
+      )}
+    </div>
 
       {/* ── Quick X-Ray Inspection Modal (DenseNet-121 Radiograph Breakdown) ── */}
       {inspectingAppointment && (

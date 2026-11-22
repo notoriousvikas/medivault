@@ -7,8 +7,19 @@ const router = express.Router();
 
 router.use(verifyAuth);
 
+// Helper to handle optional audio upload for live voice turns
+const optionalAudioUpload = (req, res, next) => {
+  if (req.is('multipart/form-data')) {
+    return audioUpload.single('audio')(req, res, next);
+  }
+  next();
+};
+
 // Supported Indian languages for voice interaction
 router.get('/languages', controller.getSupportedLanguages);
+
+// Real-time Live Audio Chat turn (Accepts recognized text or recorded voice chunk -> Groq RAG -> Sarvam TTS)
+router.post('/live-turn', optionalAudioUpload, controller.liveTurn);
 
 // Multilingual Voice AI interaction (STT -> Groq RAG -> TTS)
 router.post('/voice', audioUpload.single('audio'), controller.voiceConversation);

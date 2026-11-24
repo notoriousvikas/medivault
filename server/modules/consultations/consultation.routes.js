@@ -9,6 +9,12 @@ router.use(verifyAuth);
 // Doctors directory for consultation
 router.get('/doctors', controller.getDoctors);
 
+// Patient-only: Get dedicated registration QR code for doctor scanning
+router.get('/patient-qr', controller.getPatientRegistrationQR);
+
+// Doctor-only: Scan patient QR or token to admit to consultation
+router.post('/scan-patient', controller.scanAndAddPatient);
+
 // Consultations list & create/get conversation
 router
   .route('/')

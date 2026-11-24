@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const serverUrl = process.env.SERVER_URL || 'http://localhost:5000';
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -8,11 +10,11 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: serverUrl,
         changeOrigin: true,
       },
       '/emergency': {
-        target: 'http://localhost:5000',
+        target: serverUrl,
         changeOrigin: true,
       },
     },

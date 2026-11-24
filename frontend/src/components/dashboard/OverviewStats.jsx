@@ -20,7 +20,7 @@ export default function OverviewStats({ recordsCount = 0, prescriptionsCount = 0
       border: 'border-emerald-100',
     },
     {
-      title: 'Emergency QR Scans',
+      title: 'PranaSetu Scans',
       value: emergencyScansCount,
       subtitle: 'First Responder Life-Line',
       icon: <QrCode className="w-5 h-5 text-amber-600" />,

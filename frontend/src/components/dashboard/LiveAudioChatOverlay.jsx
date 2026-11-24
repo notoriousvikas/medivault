@@ -728,7 +728,7 @@ export default function LiveAudioChatOverlay({
     };
   } else if (callState === 'speaking') {
     statusBadge = {
-      text: 'Aarogya AI Speaking (Sarvam Indic Voice)...',
+      text: 'Aarogya AI Speaking...',
       color: 'bg-violet-500/20 text-violet-300 border-violet-500/40',
       indicator: 'bg-violet-400 animate-pulse',
     };
@@ -1021,7 +1021,7 @@ export default function LiveAudioChatOverlay({
                   <div className="space-y-1">
                     <p className="text-xs font-semibold text-amber-300 flex items-center justify-center gap-1.5">
                       <Zap className="w-3.5 h-3.5 animate-bounce" />
-                      <span>Processing clinical response with Groq RAG...</span>
+                      <span>Processing clinical response with AI Medical Copilot...</span>
                     </p>
                     {userFinalText && (
                       <p className="text-[11px] text-slate-400 line-clamp-1">

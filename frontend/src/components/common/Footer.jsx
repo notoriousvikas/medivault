@@ -16,7 +16,7 @@ export default function Footer() {
               <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Life Saver</span>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
-              Secure, decentralized Electronic Health Record (EHR) management with emergency instant-response QR protocols, DenseNet-121 radiology triage, and AI medical intelligence.
+              Secure, decentralized Electronic Health Record (EHR) management with emergency instant-response QR protocols, intelligent radiology triage, and AI medical intelligence.
             </p>
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <Lock className="w-3.5 h-3.5 text-emerald-400" />

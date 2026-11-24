@@ -209,7 +209,7 @@ export default function AreaHealthMonitoringView({ onOpenAiChat }) {
           <div>
             <h3 className="text-base sm:text-lg font-black text-navy-900 flex items-center gap-2">
               <Radio className="w-4 h-4 text-rose-500 animate-pulse" />
-              <span>Area Health Risk Detection</span>
+              <span>Jagruti Health Risk Detection</span>
             </h3>
             <p className="text-xs text-slate-500">
               Inferred passively from live Aarogya AI conversational speech & chat across localities

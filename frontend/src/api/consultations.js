@@ -28,4 +28,19 @@ export const consultationsApi = {
     });
     return res.data;
   },
+
+  getPatientQR: async () => {
+    const res = await api.get('/consultations/patient-qr');
+    return res.data;
+  },
+
+  scanAndAddPatient: async ({ qrData, token, patientId, patientEmail }) => {
+    const res = await api.post('/consultations/scan-patient', {
+      qrData,
+      token,
+      patientId,
+      patientEmail,
+    });
+    return res.data;
+  },
 };

@@ -691,7 +691,7 @@ export default function EditProfileModal({ isOpen, onClose, user, onProfileUpdat
                   />
                 </label>
                 <label className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition">
-                  <span className="text-xs font-semibold text-slate-700">Enable Emergency QR Access</span>
+                  <span className="text-xs font-semibold text-slate-700">Enable PranaSetu (Emergency QR) Access</span>
                   <input
                     type="checkbox"
                     checked={isEmergencyEnabled}

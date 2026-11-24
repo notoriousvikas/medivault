@@ -7,6 +7,7 @@ import MedicalTimeline from '../components/dashboard/MedicalTimeline';
 import UploadRecordModal from '../components/dashboard/UploadRecordModal';
 import ShareAccessModal from '../components/dashboard/ShareAccessModal';
 import EmergencyQRModal from '../components/dashboard/EmergencyQRModal';
+import PatientConsultationQRModal from '../components/dashboard/PatientConsultationQRModal';
 import SplitRecordViewerModal from '../components/records/SplitRecordViewerModal';
 import AiChatAssistantDrawer from '../components/dashboard/AiChatAssistantDrawer';
 import EditProfileModal from '../components/profile/EditProfileModal';
@@ -46,12 +47,43 @@ import {
   PhoneCall,
 } from 'lucide-react';
 
-export default function DashboardPage() {
+export default function DashboardPage({ defaultView, defaultTab, defaultEmergencyOpen = false }) {
   const { user, isAuthenticated, isLoading: authLoading, updateUserData } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const toast = useToast();
+
+  // Helper to resolve current view & tab based on route props, URL pathname, or query parameters
+  const resolveCurrentView = useCallback(() => {
+    const path = location.pathname.toLowerCase();
+
+    if (defaultView) {
+      const tabParam = searchParams.get('tab');
+      return {
+        view: defaultView,
+        tab: defaultTab || tabParam || 'all',
+      };
+    }
+
+    if (path.includes('timeline')) {
+      return { view: 'timeline', tab: 'all' };
+    }
+    if (path.includes('prescription')) {
+      return { view: 'prescriptions', tab: 'all' };
+    }
+    if (path.includes('imaging') || path.includes('scan')) {
+      return { view: 'grid', tab: 'Scan' };
+    }
+    if (path.includes('jagruti') || path.includes('alert')) {
+      return { view: 'area-alerts', tab: 'all' };
+    }
+
+    const tabParam = searchParams.get('tab');
+    return { view: 'grid', tab: tabParam || 'all' };
+  }, [location.pathname, searchParams, defaultView, defaultTab]);
+
+  const initialViewConfig = resolveCurrentView();
 
   // Data states
   const [records, setRecords] = useState([]);
@@ -61,20 +93,49 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   // View & Filter states
-  const [activeView, setActiveView] = useState('grid'); // 'grid' | 'timeline' | 'prescriptions'
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'Lab Report' | 'Prescription' | 'Scan' | 'Discharge Summary'
+  const [activeView, setActiveView] = useState(initialViewConfig.view);
+  const [activeTab, setActiveTab] = useState(initialViewConfig.tab);
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Modal & Drawer states
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
+  const [isEmergencyOpen, setIsEmergencyOpen] = useState(
+    defaultEmergencyOpen || location.pathname.toLowerCase().includes('prana')
+  );
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isPatientQRModalOpen, setIsPatientQRModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [chatReferenceRecord, setChatReferenceRecord] = useState(null);
   const [openLiveVoiceImmediately, setOpenLiveVoiceImmediately] = useState(false);
+
+  // Sync active view and tab when URL pathname or searchParams change
+  useEffect(() => {
+    const current = resolveCurrentView();
+    setActiveView(current.view);
+    setActiveTab(current.tab);
+
+    if (current.view === 'timeline') {
+      document.title = 'Medical Timeline | AyuRaksha';
+    } else if (current.view === 'prescriptions') {
+      document.title = 'AI Prescriptions | AyuRaksha';
+    } else if (current.view === 'grid' && current.tab === 'Scan') {
+      document.title = 'Imaging Scans & X-Rays | AyuRaksha';
+    } else if (current.view === 'area-alerts') {
+      document.title = 'Jagruti Health Alerts | AyuRaksha';
+    } else {
+      document.title = 'Medical Vault | AyuRaksha';
+    }
+  }, [resolveCurrentView]);
+
+  // Open emergency modal if routed to /pranaSetu or defaultEmergencyOpen
+  useEffect(() => {
+    if (defaultEmergencyOpen || location.pathname.toLowerCase().includes('prana')) {
+      setIsEmergencyOpen(true);
+    }
+  }, [defaultEmergencyOpen, location.pathname]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -306,9 +367,8 @@ export default function DashboardPage() {
               {/* Medical Records */}
               <button
                 onClick={() => {
-                  setActiveView('grid');
-                  setActiveTab('all');
                   setSidebarOpen(false);
+                  navigate('/medicalRecords');
                 }}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
                   activeView === 'grid' && activeTab === 'all'
@@ -334,8 +394,8 @@ export default function DashboardPage() {
               {/* Health Timeline */}
               <button
                 onClick={() => {
-                  setActiveView('timeline');
                   setSidebarOpen(false);
+                  navigate('/medicalTimeline');
                 }}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
                   activeView === 'timeline'
@@ -363,8 +423,8 @@ export default function DashboardPage() {
               {/* AI Prescriptions */}
               <button
                 onClick={() => {
-                  setActiveView('prescriptions');
                   setSidebarOpen(false);
+                  navigate('/aiPrescriptions');
                 }}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
                   activeView === 'prescriptions'
@@ -395,9 +455,8 @@ export default function DashboardPage() {
               {/* Imaging & Scans */}
               <button
                 onClick={() => {
-                  setActiveView('grid');
-                  setActiveTab('Scan');
                   setSidebarOpen(false);
+                  navigate('/imagingScans');
                 }}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
                   activeView === 'grid' && activeTab === 'Scan'
@@ -422,28 +481,29 @@ export default function DashboardPage() {
                 )}
               </button>
 
-              {/* Emergency QR Pass */}
+              {/* PranaSetu */}
               <button
                 onClick={() => {
                   setSidebarOpen(false);
                   setIsEmergencyOpen(true);
+                  navigate('/pranaSetu');
                 }}
                 className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-700 hover:bg-rose-50/80 transition group"
               >
                 <div className="flex items-center gap-2.5">
                   <QrCode className="w-4 h-4 text-rose-600" />
-                  <span>Emergency QR Pass</span>
+                  <span>PranaSetu</span>
                 </div>
                 <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-rose-100 text-rose-800">
                   Live
                 </span>
               </button>
 
-              {/* Area Health Alerts */}
+              {/* Jagruti Alerts */}
               <button
                 onClick={() => {
-                  setActiveView('area-alerts');
                   setSidebarOpen(false);
+                  navigate('/jagrutiAlerts');
                 }}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition group ${
                   activeView === 'area-alerts'
@@ -453,7 +513,7 @@ export default function DashboardPage() {
               >
                 <div className="flex items-center gap-2.5">
                   <Radio className={`w-4 h-4 ${activeView === 'area-alerts' ? 'text-white' : 'text-rose-500'}`} />
-                  <span>Area Health Alerts</span>
+                  <span>Jagruti Alerts</span>
                 </div>
                 <span
                   className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
@@ -478,6 +538,26 @@ export default function DashboardPage() {
                 </div>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               </Link>
+
+              {/* Patient Doctor Registration QR Button */}
+              {user?.role !== 'doctor' && (
+                <button
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    setIsPatientQRModalOpen(true);
+                  }}
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-trust-700 bg-trust-50/70 hover:bg-trust-100/70 border border-trust-200/50 transition group"
+                  title="Present your QR code to your doctor to register"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <QrCode className="w-4 h-4 text-trust-600" />
+                    <span>Doctor Registration QR</span>
+                  </div>
+                  <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-trust-200 text-trust-800">
+                    Scan Me
+                  </span>
+                </button>
+              )}
 
               {/* Share Access Portal */}
               <button
@@ -574,13 +654,13 @@ export default function DashboardPage() {
                   {activeView === 'grid' && (activeTab === 'Scan' ? 'Imaging Scans & X-Rays' : 'Medical Records Vault')}
                   {activeView === 'timeline' && 'Chronological Medical Timeline'}
                   {activeView === 'prescriptions' && 'AI Prescriptions & Safety Checks'}
-                  {activeView === 'area-alerts' && 'Area Health Risk Detection & Alerts'}
+                  {activeView === 'area-alerts' && 'Jagruti Community Health & Risk Alerts'}
                 </h2>
                 <p className="text-xs text-slate-500">
                   {activeView === 'grid' && `Stored & verified clinical documents (${filteredRecords.length})`}
                   {activeView === 'timeline' && `Aggregated health events & diagnostics (${timelineEvents.length})`}
                   {activeView === 'prescriptions' && `Active pharmacy medications & drug evaluations (${prescriptions.length})`}
-                  {activeView === 'area-alerts' && 'Automated geospatial anomaly screening & community health cluster alerts'}
+                  {activeView === 'area-alerts' && 'Automated geospatial anomaly screening & community health vigilance alerts'}
                 </p>
               </div>
             </div>
@@ -609,14 +689,27 @@ export default function DashboardPage() {
                 <span className="sm:hidden">AI Chat</span>
               </button>
 
-              {/* Emergency QR trigger */}
+              {/* PranaSetu trigger */}
               <button
                 onClick={() => setIsEmergencyOpen(true)}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-bold text-xs hover:bg-rose-100 transition shadow-sm"
               >
                 <QrCode className="w-3.5 h-3.5 text-rose-600" />
-                <span>QR Pass</span>
+                <span>PranaSetu</span>
               </button>
+
+              {/* Patient Doctor QR trigger */}
+              {user?.role !== 'doctor' && (
+                <button
+                  onClick={() => setIsPatientQRModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 border border-blue-200 text-trust-700 font-bold text-xs hover:bg-blue-100 transition shadow-sm"
+                  title="Show your QR code for doctor to scan and admit you"
+                >
+                  <QrCode className="w-3.5 h-3.5 text-trust-600" />
+                  <span className="hidden sm:inline">Doctor QR</span>
+                  <span className="sm:hidden">QR</span>
+                </button>
+              )}
 
               {/* Sync button */}
               <button
@@ -643,16 +736,22 @@ export default function DashboardPage() {
                 {/* Category Pills */}
                 <div className="flex flex-wrap items-center gap-1.5">
                   {[
-                    { label: 'All', value: 'all' },
-                    { label: 'Lab Reports', value: 'Lab Report' },
-                    { label: 'Prescriptions', value: 'Prescription' },
-                    { label: 'Imaging & Scans', value: 'Scan' },
-                    { label: 'Discharge Summaries', value: 'Discharge Summary' },
+                    { label: 'All', value: 'all', to: '/medicalRecords' },
+                    { label: 'Lab Reports', value: 'Lab Report', to: '/medicalRecords?tab=Lab+Report' },
+                    { label: 'Prescriptions', value: 'Prescription', to: '/aiPrescriptions' },
+                    { label: 'Imaging & Scans', value: 'Scan', to: '/imagingScans' },
+                    { label: 'Discharge Summaries', value: 'Discharge Summary', to: '/medicalRecords?tab=Discharge+Summary' },
                   ].map((tab) => (
                     <button
                       key={tab.value}
                       type="button"
-                      onClick={() => setActiveTab(tab.value)}
+                      onClick={() => {
+                        if (tab.to) {
+                          navigate(tab.to);
+                        } else {
+                          setActiveTab(tab.value);
+                        }
+                      }}
                       className={`px-3 py-1.5 text-xs font-bold rounded-xl transition ${
                         activeTab === tab.value
                           ? 'bg-navy-900 text-white shadow-sm'
@@ -813,7 +912,12 @@ export default function DashboardPage() {
 
       <EmergencyQRModal
         isOpen={isEmergencyOpen}
-        onClose={() => setIsEmergencyOpen(false)}
+        onClose={() => {
+          setIsEmergencyOpen(false);
+          if (location.pathname.toLowerCase().includes('prana')) {
+            navigate('/medicalRecords', { replace: true });
+          }
+        }}
         user={user}
         onUserUpdate={updateUserData}
       />
@@ -853,6 +957,11 @@ export default function DashboardPage() {
           if (updateUserData) updateUserData(updated);
           fetchData();
         }}
+      />
+
+      <PatientConsultationQRModal
+        isOpen={isPatientQRModalOpen}
+        onClose={() => setIsPatientQRModalOpen(false)}
       />
     </div>
   );

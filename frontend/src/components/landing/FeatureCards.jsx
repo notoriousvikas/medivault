@@ -42,7 +42,7 @@ export default function FeatureCards() {
                     <span className="text-xs font-bold text-emerald-400">Verified</span>
                   </div>
                   <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/60 flex items-center justify-between">
-                    <span className="text-sm font-medium">Emergency QR Response</span>
+                    <span className="text-sm font-medium">PranaSetu Emergency Response</span>
                     <span className="text-xs font-bold text-trust-400">&lt; 1.2s</span>
                   </div>
                   <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/60 flex items-center justify-between">

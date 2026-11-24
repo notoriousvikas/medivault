@@ -86,7 +86,7 @@ export default function RecordDetailPage() {
     setAnalyzingXray(true);
     try {
       const res = await recordsApi.analyzeChestXRay(id);
-      toast.success('DenseNet-121 Inference Complete', 'Radiographic pathology patterns evaluated.');
+      toast.success('Radiology Analysis Complete', 'Radiographic pathology patterns evaluated.');
       // recordsApi returns HTTP body: { status, data: { record, xrayAnalysis, summary } }
       const updated = res?.data?.record || res?.data;
       if (updated?._id) {
@@ -186,7 +186,7 @@ export default function RecordDetailPage() {
                 {analyzingXray
                   ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-violet-600" />
                   : <Activity className="w-3.5 h-3.5 text-violet-600" />}
-                <span>{analyzingXray ? 'Running DenseNet-121...' : (xrayData ? 'Re-Run X-Ray AI' : 'Run Chest X-Ray AI')}</span>
+                <span>{analyzingXray ? 'Running Radiology AI...' : (xrayData ? 'Re-Run Radiology AI' : 'Run Chest X-Ray AI')}</span>
               </button>
             )}
 
@@ -301,7 +301,7 @@ export default function RecordDetailPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-violet-800 uppercase tracking-wider">
                       <Activity className="w-4 h-4 text-violet-600" />
-                      <span>DenseNet-121 Radiograph Findings</span>
+                      <span>Radiology AI Findings</span>
                     </div>
                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-200/60 text-violet-800">
                       {(xrayData.device || 'CPU').toUpperCase()} · {xrayData.execution_time_ms}ms
@@ -309,7 +309,7 @@ export default function RecordDetailPage() {
                   </div>
 
                   <p className="text-[11px] text-violet-700 font-medium">
-                    {xrayData.model_name || 'TorchXRayVision'} · {xrayData.model_version || 'densenet121-res224-all'}
+                    Radiology AI Engine · Deep Pattern Neural Network
                   </p>
 
                   {/* Findings list sorted by score */}
@@ -425,7 +425,7 @@ export default function RecordDetailPage() {
 
                         <p className={`text-[11px] leading-relaxed ${isCritical ? 'text-rose-800' : isUrgent ? 'text-amber-800' : 'text-slate-600'}`}>
                           {topFinding ? (
-                            <>DenseNet-121 model flagged <strong>{topFinding.label}</strong> (pattern score: {topScore.toFixed(3)}). {isCritical ? 'Immediate emergency specialist consultation is strongly advised.' : 'Specialist consultation is recommended for clinical correlation.'}</>
+                            <>Radiology AI model flagged <strong>{topFinding.label}</strong> (pattern score: {topScore.toFixed(3)}). {isCritical ? 'Immediate emergency specialist consultation is strongly advised.' : 'Specialist consultation is recommended for clinical correlation.'}</>
                           ) : (
                             'Schedule a specialist review for this radiograph.'
                           )}
@@ -465,7 +465,7 @@ export default function RecordDetailPage() {
                     <Activity className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-violet-800">DenseNet-121 X-Ray Analysis</p>
+                    <p className="text-sm font-bold text-violet-800">Radiology AI Analysis</p>
                     <p className="text-xs text-slate-500 mt-0.5">Run AI inference to extract 18 radiologic pathology pattern scores from this image.</p>
                   </div>
                   <button

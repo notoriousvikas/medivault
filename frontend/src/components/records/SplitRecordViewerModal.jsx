@@ -72,7 +72,7 @@ export default function SplitRecordViewerModal({ isOpen, onClose, record, onOpen
     setAnalyzingXray(true);
     try {
       const res = await recordsApi.analyzeChestXRay(recordId);
-      toast.success('DenseNet-121 Inference Complete', 'Extracted 18 radiologic pattern scores.');
+      toast.success('Radiology Analysis Complete', 'Extracted 18 radiologic pattern scores.');
       const updated = res?.data?.record || res?.data || record;
       if (onRecordUpdated) onRecordUpdated(updated);
     } catch (err) {
@@ -239,7 +239,7 @@ export default function SplitRecordViewerModal({ isOpen, onClose, record, onOpen
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-violet-800 uppercase tracking-wider">
                       <Activity className="w-4 h-4 text-violet-600" />
-                      <span>DenseNet-121 Findings</span>
+                      <span>Radiology AI Findings</span>
                     </div>
                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-200/60 text-violet-800">
                       {(xrayData.device || 'CPU').toUpperCase()} · {xrayData.execution_time_ms}ms
@@ -247,7 +247,7 @@ export default function SplitRecordViewerModal({ isOpen, onClose, record, onOpen
                   </div>
 
                   <p className="text-[11px] text-violet-700 font-medium">
-                    {xrayData.model_name || 'TorchXRayVision'} · {xrayData.model_version || 'densenet121-res224-all'}
+                    Radiology AI Engine · Deep Pattern Neural Network
                   </p>
 
                   <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
@@ -291,7 +291,7 @@ export default function SplitRecordViewerModal({ isOpen, onClose, record, onOpen
                     <Activity className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-violet-800">DenseNet-121 X-Ray Analysis</p>
+                    <p className="text-sm font-bold text-violet-800">Radiology AI Analysis</p>
                     <p className="text-xs text-slate-500 mt-0.5">Run AI inference to extract 18 radiologic pathology pattern scores from this image.</p>
                   </div>
                   <button

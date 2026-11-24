@@ -54,7 +54,7 @@ export default function EmergencyQRModal({ isOpen, onClose, user, onUserUpdate }
         setQrDataUrl(res.data.qrCodeDataUrl);
         setEmergencyToken(res.data.emergencyToken);
         setEmergencyUrl(res.data.emergencyUrl);
-        toast.success('Token Regenerated', 'A fresh cryptographic emergency QR pass has been generated.');
+        toast.success('Token Regenerated', 'A fresh cryptographic PranaSetu pass has been generated.');
         if (onUserUpdate) onUserUpdate({ emergencyToken: res.data.emergencyToken });
       }
     } catch (err) {
@@ -88,7 +88,7 @@ export default function EmergencyQRModal({ isOpen, onClose, user, onUserUpdate }
               <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-navy-900">Emergency Medical Pass</h3>
+              <h3 className="text-lg font-bold text-navy-900">PranaSetu Emergency Pass</h3>
               <p className="text-xs text-slate-500">First-responder access token for life-critical triage</p>
             </div>
           </div>

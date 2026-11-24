@@ -341,7 +341,7 @@ export default function AdminPage() {
             }`}
           >
             <Radio className="w-4 h-4 text-rose-500" />
-            <span>Area Health Clusters</span>
+            <span>Jagruti Alerts & Clusters</span>
           </button>
         </div>
 

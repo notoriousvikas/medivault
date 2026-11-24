@@ -190,7 +190,7 @@ export default function AiChatAssistantDrawer({
         toast.error('Voice Unavailable', 'Could not synthesize speech.');
       }
     } catch (err) {
-      toast.error('Speech Synthesis Error', err.message || 'Sarvam TTS failed.');
+      toast.error('Speech Synthesis Error', err.message || 'Voice synthesis failed.');
     } finally {
       setSynthesizingId(null);
     }
@@ -372,7 +372,7 @@ export default function AiChatAssistantDrawer({
   // Submit recorded voice audio to backend voice conversation pipeline
   const submitVoiceAudio = async (audioBlob) => {
     setLoading(true);
-    setVoiceStage('Transcribing with Sarvam Saaras v4...');
+    setVoiceStage('Listening & processing voice...');
 
     try {
       const formData = new FormData();
@@ -386,11 +386,11 @@ export default function AiChatAssistantDrawer({
 
       // Progression stage updates
       const stageTimer1 = setTimeout(() => {
-        setVoiceStage('Analyzing health context with Groq LLM...');
+        setVoiceStage('Analyzing medical context with Clinical AI...');
       }, 900);
 
       const stageTimer2 = setTimeout(() => {
-        setVoiceStage('Synthesizing voice response with Sarvam Bulbul v4...');
+        setVoiceStage('Synthesizing clinical voice response...');
       }, 1800);
 
       const res = await chatApi.sendVoiceMessage(formData);
@@ -431,7 +431,7 @@ export default function AiChatAssistantDrawer({
       }
     } catch (err) {
       console.error('Voice conversation error:', err);
-      toast.error('Voice AI Error', err.message || 'Could not complete Sarvam voice interaction.');
+      toast.error('Voice AI Error', err.message || 'Could not complete voice interaction.');
     } finally {
       setLoading(false);
       setVoiceStage('');
@@ -484,7 +484,7 @@ export default function AiChatAssistantDrawer({
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] text-emerald-400">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Groq LLM &bull; Sarvam AI Multilingual Voice</span>
+                  <span>Clinical Intelligence &bull; Multilingual Voice</span>
                 </div>
               </div>
             </div>
@@ -729,7 +729,7 @@ export default function AiChatAssistantDrawer({
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500">
-                    Multilingual pipeline: Sarvam Saaras v4 &bull; Groq LLM &bull; Sarvam Bulbul v4 Flash
+                    Multilingual pipeline: Clinical Speech &bull; Medical Intelligence &bull; High-Definition Voice
                   </p>
                 </div>
               </div>
@@ -794,8 +794,8 @@ export default function AiChatAssistantDrawer({
                   isRecording
                     ? 'Stop recording and send query'
                     : currentLangObj.code === 'auto'
-                    ? 'Speak in English, Hindi, or any Indian language (Sarvam Saaras STT)'
-                    : `Speak in ${currentLangObj.name} (Sarvam Saaras STT)`
+                    ? 'Speak in English, Hindi, or any Indian language'
+                    : `Speak in ${currentLangObj.name}`
                 }
                 className={`p-2.5 rounded-xl transition flex items-center justify-center shrink-0 ${
                   isRecording

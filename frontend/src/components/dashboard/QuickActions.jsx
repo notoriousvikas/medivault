@@ -7,6 +7,7 @@ export default function QuickActions({
   onOpenShare,
   onOpenEmergency,
   onOpenAiAssistant,
+  onOpenPatientQR,
 }) {
   return (
     <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-sm">
@@ -36,15 +37,28 @@ export default function QuickActions({
             <span>Doctor Chat</span>
           </Link>
 
-          {/* Emergency QR */}
+          {/* PranaSetu */}
           <button
             type="button"
             onClick={onOpenEmergency}
             className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-xs sm:text-sm hover:bg-emerald-100 active:scale-95 transition shadow-sm"
           >
             <QrCode className="w-4 h-4 text-emerald-600" />
-            <span>Emergency QR</span>
+            <span>PranaSetu</span>
           </button>
+
+          {/* Doctor Registration QR */}
+          {onOpenPatientQR && (
+            <button
+              type="button"
+              onClick={onOpenPatientQR}
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-trust-800 font-bold text-xs sm:text-sm hover:bg-blue-100 active:scale-95 transition shadow-sm"
+              title="Show your QR code for doctor to scan"
+            >
+              <QrCode className="w-4 h-4 text-trust-600" />
+              <span>Doctor QR</span>
+            </button>
+          )}
 
           {/* AI Health Assistant */}
           <button

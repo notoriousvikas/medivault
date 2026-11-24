@@ -27,6 +27,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import DoctorScheduleModal from '../appointments/DoctorScheduleModal';
 import EditDoctorProfileModal from '../profile/EditDoctorProfileModal';
+import DoctorPatientScannerModal from './DoctorPatientScannerModal';
 import AreaHealthMonitoringView from './AreaHealthMonitoringView';
 
 export default function DoctorDashboardView() {
@@ -41,6 +42,7 @@ export default function DoctorDashboardView() {
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [togglingAvailability, setTogglingAvailability] = useState(false);
 
   // Selected scan modal for quick radiograph inspection
@@ -112,7 +114,7 @@ export default function DoctorDashboardView() {
       toast.success(
         nextState ? '🟢 Clinic Available' : '⚪ Marked As Away',
         nextState
-          ? 'You are now online. DenseNet-121 critical triage cases can be auto-routed to you.'
+          ? 'You are now online. Critical radiology triage cases can be auto-routed to you.'
           : 'You are marked as away. Auto-bookings are paused.'
       );
     } catch (err) {
@@ -268,6 +270,16 @@ export default function DoctorDashboardView() {
               <span>Edit Profile</span>
             </button>
 
+            {/* Scan Patient QR Button */}
+            <button
+              onClick={() => setIsScannerOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-trust-600 to-indigo-600 hover:from-trust-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-trust-600/20"
+              title="Scan patient PranaSetu QR code to admit to consultation"
+            >
+              <ScanLine className="w-4 h-4" />
+              <span>Scan Patient QR</span>
+            </button>
+
             {/* Configure Schedule Button */}
             <button
               onClick={() => setIsScheduleModalOpen(true)}
@@ -320,7 +332,7 @@ export default function DoctorDashboardView() {
           <div className="mt-3">
             <p className="text-2xl font-black text-navy-900">{criticalAppointments.length}</p>
             <p className="text-xs font-bold text-slate-600">Critical Triage Cases</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">Flagged by DenseNet-121 inference</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Flagged by Radiology AI Triage</p>
           </div>
         </div>
 
@@ -400,7 +412,7 @@ export default function DoctorDashboardView() {
                 </h3>
               </div>
               <p className="text-xs text-rose-100 mt-1">
-                DenseNet-121 radiograph inference detected severe acute pathologies. Immediate clinical review required.
+                Radiology AI radiograph analysis detected severe acute pathologies. Immediate clinical review required.
               </p>
             </div>
           </div>
@@ -424,7 +436,7 @@ export default function DoctorDashboardView() {
               <span>Clinical Triage & Appointment Queue</span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Live patient cases matched from DenseNet-121 radiograph triage and appointments
+              Live patient cases matched from automated radiograph triage and appointments
             </p>
           </div>
 
@@ -448,7 +460,7 @@ export default function DoctorDashboardView() {
                 { id: 'CRITICAL', label: `🚨 Critical (${criticalAppointments.length})` },
                 { id: 'today', label: 'Today' },
                 { id: 'completed', label: 'Completed' },
-                { id: 'clusters', label: '🌐 Area Health Alerts' },
+                { id: 'clusters', label: '🌐 Jagruti Alerts' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -504,7 +516,7 @@ export default function DoctorDashboardView() {
                 </p>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
                   {selectedFilter === 'CRITICAL'
-                    ? 'DenseNet-121 has not flagged any acute emergency radiographs requiring urgent care.'
+                    ? 'Radiology AI has not flagged any acute emergency radiographs requiring urgent care.'
                     : 'When patients upload chest radiographs or schedule consultations, they will appear here automatically.'}
                 </p>
               </div>
@@ -573,7 +585,7 @@ export default function DoctorDashboardView() {
                         {apt.autoBooked && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-800 flex items-center gap-1">
                             <Sparkles className="w-3 h-3" />
-                            DenseNet Auto-Booked
+                            Radiology AI Auto-Booked
                           </span>
                         )}
                       </div>
@@ -695,7 +707,7 @@ export default function DoctorDashboardView() {
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-navy-900">
-                    DenseNet-121 Radiograph Study
+                    Clinical Radiograph Study
                   </h3>
                   <p className="text-xs text-slate-500">
                     Patient: <strong>{inspectingAppointment.patientId?.name}</strong> &bull; {inspectingAppointment.recordId?.title || 'Chest X-Ray'}
@@ -744,8 +756,8 @@ export default function DoctorDashboardView() {
             {inspectingAppointment.recordId?.parsedData?.xrayAnalysis?.findings && (
               <div className="space-y-2">
                 <p className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
-                  <span>Detected Pathology Pattern Scores (TorchXRayVision)</span>
-                  <span className="text-[10px] font-mono font-normal text-slate-400">DenseNet-121</span>
+                  <span>Detected Pathology Pattern Scores</span>
+                  <span className="text-[10px] font-mono font-normal text-slate-400">Radiology AI</span>
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {inspectingAppointment.recordId.parsedData.xrayAnalysis.findings.map((item, idx) => {
@@ -825,6 +837,15 @@ export default function DoctorDashboardView() {
         onProfileUpdated={(updated) => {
           setAvailability((prev) => ({ ...(prev || {}), ...updated }));
           fetchData();
+        }}
+      />
+
+      {/* Doctor-Only Patient PranaSetu QR Scanner Modal */}
+      <DoctorPatientScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onPatientAdmitted={(consultation) => {
+          navigate(`/consultations?id=${consultation._id}`);
         }}
       />
     </div>

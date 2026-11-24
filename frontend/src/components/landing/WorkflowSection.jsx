@@ -79,7 +79,7 @@ export default function WorkflowSection() {
                     3
                   </span>
                   <h3 className="text-xl font-extrabold text-navy-900">
-                    Step 3: Instant Emergency QR & Doctor Sharing
+                    Step 3: Instant PranaSetu QR & Doctor Sharing
                   </h3>
                 </div>
                 <p className="text-sm sm:text-base text-slate-600 leading-relaxed pl-11">

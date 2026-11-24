@@ -17,6 +17,9 @@ import {
   Settings,
   MessageSquare,
   Stethoscope,
+  Calendar,
+  Pill,
+  ScanLine,
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -184,6 +187,34 @@ export default function Navbar() {
                           <LayoutDashboard className="w-4 h-4 text-trust-500" />
                           Dashboard
                         </Link>
+                        {user?.role !== 'admin' && (
+                          <>
+                            <Link
+                              to="/medicalTimeline"
+                              onClick={() => setAvatarMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-navy-900 transition"
+                            >
+                              <Calendar className="w-4 h-4 text-trust-600" />
+                              Medical Timeline
+                            </Link>
+                            <Link
+                              to="/aiPrescriptions"
+                              onClick={() => setAvatarMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-navy-900 transition"
+                            >
+                              <Pill className="w-4 h-4 text-emerald-500" />
+                              AI Prescriptions
+                            </Link>
+                            <Link
+                              to="/imagingScans"
+                              onClick={() => setAvatarMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-navy-900 transition"
+                            >
+                              <ScanLine className="w-4 h-4 text-violet-500" />
+                              Imaging & Scans
+                            </Link>
+                          </>
+                        )}
                         <Link
                           to="/consultations"
                           onClick={() => setAvatarMenuOpen(false)}
@@ -269,6 +300,31 @@ export default function Navbar() {
               >
                 Dashboard
               </Link>
+              {user?.role !== 'admin' && (
+                <>
+                  <Link
+                    to="/medicalTimeline"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-3 py-2 text-base font-semibold text-slate-800 hover:bg-slate-50 rounded-lg"
+                  >
+                    Medical Timeline
+                  </Link>
+                  <Link
+                    to="/aiPrescriptions"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-3 py-2 text-base font-semibold text-slate-800 hover:bg-slate-50 rounded-lg"
+                  >
+                    AI Prescriptions
+                  </Link>
+                  <Link
+                    to="/imagingScans"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-3 py-2 text-base font-semibold text-slate-800 hover:bg-slate-50 rounded-lg"
+                  >
+                    Imaging & Scans
+                  </Link>
+                </>
+              )}
               <Link
                 to="/consultations"
                 onClick={() => setMobileMenuOpen(false)}

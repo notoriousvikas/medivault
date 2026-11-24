@@ -163,7 +163,7 @@ export default function UploadRecordModal({ isOpen, onClose, onUploadSuccess }) 
         if (isChestXRay) {
           setEncryptionStage('Encrypting radiograph with AES-256 zero-knowledge seal...');
           await new Promise((r) => setTimeout(r, 300));
-          setEncryptionStage('Transmitting to DenseNet-121 PyTorch AI Microservice...');
+          setEncryptionStage('Analyzing radiograph with Clinical Radiology AI...');
           await new Promise((r) => setTimeout(r, 300));
           setEncryptionStage('Evaluating 18 pulmonary pathology confidence scores...');
         } else {
@@ -271,7 +271,7 @@ export default function UploadRecordModal({ isOpen, onClose, onUploadSuccess }) 
                 </div>
                 <span className="text-[11px] font-mono text-white/80">
                   {triageResult.isXRay
-                    ? `DenseNet-121 • ${triageResult.xrayAnalysis?.execution_time_ms || 120}ms`
+                    ? `Radiology AI • ${triageResult.xrayAnalysis?.execution_time_ms || 120}ms`
                     : 'Clinical Lab Triage • Biomarker Vector'}
                 </span>
               </div>
@@ -506,7 +506,7 @@ export default function UploadRecordModal({ isOpen, onClose, onUploadSuccess }) 
                 <div>
                   <h3 className="text-lg font-bold text-navy-900">Upload & AI Triage</h3>
                   <p className="text-xs text-slate-500">
-                    End-to-end encrypted storage & DenseNet-121 radiology triage
+                    End-to-end encrypted storage & clinical radiology triage
                   </p>
                 </div>
               </div>
@@ -600,7 +600,7 @@ export default function UploadRecordModal({ isOpen, onClose, onUploadSuccess }) 
                   }}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-trust-500 transition"
                 >
-                  <option value="Chest X-Ray">Chest Radiograph / X-Ray (DenseNet-121 AI Triage)</option>
+                  <option value="Chest X-Ray">Chest Radiograph / X-Ray (Radiology AI Triage)</option>
                   <option value="Scan">Other Medical Imaging (MRI, CT, Ultrasound)</option>
                   <option value="Lab Report">Lab Report (Metabolic, Blood, Pathology)</option>
                   <option value="Prescription">Prescription / Medication Slip</option>
@@ -609,7 +609,7 @@ export default function UploadRecordModal({ isOpen, onClose, onUploadSuccess }) 
                 </select>
               </div>
 
-              {/* DenseNet-121 Auto-Triage Option Callout (Only for Chest X-Ray) */}
+              {/* Radiology Auto-Triage Option Callout (Only for Chest X-Ray) */}
               {category === 'Chest X-Ray' ? (
                 <div
                   onClick={() => setRunXRayTriage(!runXRayTriage)}
@@ -628,7 +628,7 @@ export default function UploadRecordModal({ isOpen, onClose, onUploadSuccess }) 
                   <div className="text-left space-y-0.5">
                     <p className="text-xs font-bold flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-trust-600" />
-                      <span>Run DenseNet-121 AI Triage & Specialist Auto-Match</span>
+                      <span>Run Radiology AI Triage & Specialist Auto-Match</span>
                     </p>
                     <p className="text-[11px] text-slate-500 leading-relaxed">
                       Evaluates 18 pulmonary pathologies (Pneumothorax, Edema, Consolidation). Automatically matches on-call Pulmonologists and locks in an immediate emergency slot if critical markers are detected.
@@ -641,7 +641,7 @@ export default function UploadRecordModal({ isOpen, onClose, onUploadSuccess }) 
                   <div className="text-left space-y-0.5">
                     <p className="text-xs font-bold text-navy-900">Standard Encrypted Vault Upload</p>
                     <p className="text-[11px] text-slate-500 leading-relaxed">
-                      This document is not a chest X-ray and will be stored securely in your vault without DenseNet-121 triage. You can access it anytime or run Aarogya AI for lab report insights.
+                      This document is not a chest X-ray and will be stored securely in your vault without automated radiology triage. You can access it anytime or run Aarogya AI for lab report insights.
                     </p>
                   </div>
                 </div>

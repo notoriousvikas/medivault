@@ -8,6 +8,8 @@ import { recordsApi } from '../api/records';
 import { appointmentsApi } from '../api/appointments';
 import BookAppointmentModal from '../components/appointments/BookAppointmentModal';
 import DoctorScheduleModal from '../components/appointments/DoctorScheduleModal';
+import DoctorPatientScannerModal from '../components/dashboard/DoctorPatientScannerModal';
+import PatientConsultationQRModal from '../components/dashboard/PatientConsultationQRModal';
 import {
   MessageSquare,
   Send,
@@ -29,6 +31,8 @@ import {
   Heart,
   Calendar,
   Sparkles,
+  ScanLine,
+  QrCode,
 } from 'lucide-react';
 
 export default function DoctorChatPage() {
@@ -59,6 +63,8 @@ export default function DoctorChatPage() {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState(null);
   const [doctorAvailability, setDoctorAvailability] = useState(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isPatientQRModalOpen, setIsPatientQRModalOpen] = useState(false);
 
   // Loading states
   const [loadingConsultations, setLoadingConsultations] = useState(true);
@@ -385,21 +391,43 @@ export default function DoctorChatPage() {
 
           <div className="flex items-center gap-2">
             {isDoctor && (
+              <>
+                <button
+                  onClick={() => setIsScannerOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-trust-600 to-indigo-600 hover:from-trust-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-sm shadow-trust-600/30"
+                  title="Scan Patient PranaSetu QR pass to admit patient directly"
+                >
+                  <ScanLine className="w-3.5 h-3.5" />
+                  <span>Scan Patient QR</span>
+                </button>
+
+                <button
+                  onClick={() => setIsScheduleModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:text-navy-900 rounded-xl text-xs font-bold transition shadow-xs"
+                  title="Manage Clinic Hours & Real-time Availability"
+                >
+                  <Clock className="w-3.5 h-3.5 text-trust-600" />
+                  <span>Clinic Schedule</span>
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      doctorAvailability?.isAvailableForBooking !== false
+                        ? 'bg-emerald-500'
+                        : 'bg-rose-500'
+                    }`}
+                    title={doctorAvailability?.isAvailableForBooking !== false ? 'Available' : 'Away'}
+                  />
+                </button>
+              </>
+            )}
+
+            {!isDoctor && (
               <button
-                onClick={() => setIsScheduleModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:text-navy-900 rounded-xl text-xs font-bold transition shadow-xs"
-                title="Manage Clinic Hours & Real-time Availability"
+                onClick={() => setIsPatientQRModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-trust-600 to-indigo-600 hover:from-trust-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-sm shadow-trust-600/30"
+                title="Show your QR code for doctor to scan and admit you"
               >
-                <Clock className="w-3.5 h-3.5 text-trust-600" />
-                <span>Clinic Schedule</span>
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    doctorAvailability?.isAvailableForBooking !== false
-                      ? 'bg-emerald-500'
-                      : 'bg-rose-500'
-                  }`}
-                  title={doctorAvailability?.isAvailableForBooking !== false ? 'Available' : 'Away'}
-                />
+                <QrCode className="w-3.5 h-3.5" />
+                <span>My Patient QR</span>
               </button>
             )}
 
@@ -493,6 +521,58 @@ export default function DoctorChatPage() {
                 )}
               </div>
 
+              {/* Doctor Quick Scanner Bar */}
+              {isDoctor && (
+                <div className="mt-2.5 p-2 bg-gradient-to-r from-trust-50 to-indigo-50/60 rounded-xl border border-trust-100 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-6 h-6 rounded-lg bg-trust-600 text-white flex items-center justify-center shrink-0">
+                      <ScanLine className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[11px] font-bold text-navy-900 block truncate">
+                        Admit Patient
+                      </span>
+                      <span className="text-[9px] text-slate-500 block truncate">
+                        Scan PranaSetu QR
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsScannerOpen(true)}
+                    className="px-2.5 py-1 bg-trust-600 hover:bg-trust-700 text-white text-[10px] font-extrabold rounded-lg shadow-xs transition shrink-0"
+                  >
+                    Scan QR
+                  </button>
+                </div>
+              )}
+
+              {/* Patient Quick QR Card */}
+              {!isDoctor && activeTab === 'chats' && (
+                <div className="mt-2.5 p-2 bg-gradient-to-r from-trust-50 to-indigo-50/60 rounded-xl border border-trust-100 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-trust-600 to-indigo-600 text-white flex items-center justify-center shrink-0">
+                      <QrCode className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[11px] font-bold text-navy-900 block truncate">
+                        Doctor Registration QR
+                      </span>
+                      <span className="text-[9px] text-slate-500 block truncate">
+                        Let doctor scan to admit you
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPatientQRModalOpen(true)}
+                    className="px-2.5 py-1 bg-trust-600 hover:bg-trust-700 text-white text-[10px] font-extrabold rounded-lg shadow-xs transition shrink-0"
+                  >
+                    Show QR
+                  </button>
+                </div>
+              )}
+
               {/* Search input */}
               <div className="mt-3 relative">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -547,12 +627,21 @@ export default function DoctorChatPage() {
                     </div>
                     <p className="font-semibold text-slate-600">No conversations yet</p>
                     {!isDoctor && (
-                      <button
-                        onClick={() => setActiveTab('doctors')}
-                        className="px-3 py-1.5 rounded-xl bg-trust-600 text-white text-xs font-bold hover:bg-trust-700 transition"
-                      >
-                        Find a Doctor
-                      </button>
+                      <div className="flex flex-col gap-2 pt-1 max-w-xs mx-auto">
+                        <button
+                          onClick={() => setIsPatientQRModalOpen(true)}
+                          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-trust-600 to-indigo-600 text-white text-xs font-bold hover:from-trust-700 hover:to-indigo-700 transition flex items-center justify-center gap-1.5 shadow-sm"
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
+                          <span>Show Doctor My QR</span>
+                        </button>
+                        <button
+                          onClick={() => setActiveTab('doctors')}
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition"
+                        >
+                          Find a Doctor
+                        </button>
+                      </div>
                     )}
                   </div>
                 ) : (
@@ -1261,6 +1350,30 @@ export default function DoctorChatPage() {
           fetchDoctors();
         }}
       />
+
+      {/* Doctor-Only Patient PranaSetu QR Scanner Modal */}
+      {isDoctor && (
+        <DoctorPatientScannerModal
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          onPatientAdmitted={async (consultation) => {
+            setActiveTab('chats');
+            await fetchConsultations(consultation._id);
+            setActiveConsultation(consultation);
+            if (consultation._id) {
+              await fetchMessages(consultation._id);
+            }
+          }}
+        />
+      )}
+
+      {/* Patient Doctor Registration QR Modal */}
+      {!isDoctor && (
+        <PatientConsultationQRModal
+          isOpen={isPatientQRModalOpen}
+          onClose={() => setIsPatientQRModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -72,7 +72,7 @@ export default function EmergencyPublicPage() {
             <ShieldAlert className="w-8 h-8 text-white" />
             <div>
               <span className="text-[10px] font-extrabold tracking-widest uppercase bg-rose-700/80 px-2 py-0.5 rounded">
-                CRITICAL TRIAGE PASS
+                PRANASETU CRITICAL TRIAGE PASS
               </span>
               <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
                 {data.patient?.name || 'Verified Patient'}
@@ -207,7 +207,7 @@ export default function EmergencyPublicPage() {
       </div>
 
       <div className="max-w-3xl mx-auto w-full pt-8 text-center text-xs text-slate-500">
-        AyuRaksha (Life Saver) Emergency Access Protocol • Cryptographically Logged
+        PranaSetu (Life Saver) Emergency Access Protocol • Cryptographically Logged
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import 'dotenv/config';
 
 import express from 'express';
+import cors from 'cors';
 import userRoutes from './modules/users/user.routes.js';
 import recordRoutes from './modules/records/record.routes.js';
 import prescriptionRoutes from './modules/prescriptions/prescription.routes.js';
@@ -16,17 +17,25 @@ import { errorHandler } from './middleware/error.middleware.js';
 
 const app = express();
 
-// Enable CORS for frontend integration
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
+// Set FRONTEND_URL on the backend deployment to the Vercel frontend origin.
+// Multiple comma-separated origins can be used for production and preview deployments.
+const allowedOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin(origin, callback) {
+    // Requests without an Origin header (health checks, server-to-server) are allowed.
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Origin is not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+}));
 
 app.use(express.json({ strict: false }));
 // Gracefully recover if client sends empty or non-object JSON body

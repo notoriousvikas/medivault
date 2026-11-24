@@ -753,42 +753,42 @@ export default function LiveAudioChatOverlay({
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-trust-600/15 rounded-full blur-3xl pointer-events-none" />
 
       {/* Main Glassmorphic Container */}
-      <div className="relative w-full max-w-2xl h-[92vh] max-h-[750px] bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-white">
+      <div className="relative w-full max-w-2xl h-[92vh] max-h-[750px] bg-slate-900/90 border border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden text-white">
         {/* Top Header Bar */}
-        <div className="px-5 py-3.5 border-b border-slate-800/80 flex items-center justify-between shrink-0 bg-slate-950/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-violet-600/30 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shadow-inner">
-              <Sparkles className="w-5 h-5 text-indigo-300" />
+        <div className="px-3 sm:px-5 py-2.5 sm:py-3.5 border-b border-slate-800/80 flex items-center justify-between shrink-0 bg-slate-950/60 gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500/30 to-violet-600/30 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shadow-inner shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-300" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm sm:text-base text-white tracking-wide">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h3 className="font-bold text-xs sm:text-base text-white tracking-wide truncate">
                   Aarogya Live Voice Call
                 </h3>
-                <span className="px-2 py-0.5 rounded-full bg-trust-500/20 text-trust-300 text-[10px] font-mono font-bold border border-trust-400/30">
+                <span className="hidden min-[360px]:inline-block px-1.5 sm:px-2 py-0.5 rounded-full bg-trust-500/20 text-trust-300 text-[8px] sm:text-[10px] font-mono font-bold border border-trust-400/30 shrink-0 whitespace-nowrap">
                   REAL-TIME AI
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                <span className="font-mono text-emerald-400 font-bold">{formatTime(callDuration)}</span>
-                <span>&bull;</span>
-                <span className="text-[11px] text-slate-400">Grounded in Medical Vault</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-slate-400 mt-0.5 min-w-0">
+                <span className="font-mono text-emerald-400 font-bold shrink-0">{formatTime(callDuration)}</span>
+                <span className="shrink-0">&bull;</span>
+                <span className="text-[10px] sm:text-[11px] text-slate-400 truncate">Grounded in Medical Vault</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* Transcript Drawer Toggle */}
             <button
               onClick={() => setShowTranscript(!showTranscript)}
-              className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+              className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-xs font-semibold flex items-center gap-1 sm:gap-1.5 transition ${
                 showTranscript
                   ? 'bg-indigo-600 text-white'
                   : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
               title="Toggle Live Transcript"
             >
-              <FileText className="w-4 h-4" />
+              <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Transcript</span>
             </button>
 
@@ -796,15 +796,15 @@ export default function LiveAudioChatOverlay({
             <div className="relative">
               <button
                 onClick={() => setShowLanguagePicker(!showLanguagePicker)}
-                className="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-bold text-slate-200 flex items-center gap-1.5 transition"
+                className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-[11px] sm:text-xs font-bold text-slate-200 flex items-center gap-1 sm:gap-1.5 transition"
               >
                 <span>{currentLangObj.flag}</span>
                 <span className="hidden sm:inline">{currentLangObj.name}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
               </button>
 
               {showLanguagePicker && (
-                <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl p-1.5 z-30 max-h-64 overflow-y-auto">
+                <div className="absolute right-0 mt-2 w-52 sm:w-56 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl p-1.5 z-30 max-h-64 overflow-y-auto">
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
                     Select Spoken Language:
                   </div>
@@ -833,10 +833,10 @@ export default function LiveAudioChatOverlay({
             {/* End Call Button */}
             <button
               onClick={handleUserHangup}
-              className="p-2 rounded-xl bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 transition"
+              className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 transition"
               title="End Live Call"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         </div>

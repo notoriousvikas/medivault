@@ -45,6 +45,7 @@ import {
   Navigation,
   Radio,
   PhoneCall,
+  Home,
 } from 'lucide-react';
 
 export default function DashboardPage({ defaultView, defaultTab, defaultEmergencyOpen = false }) {
@@ -635,28 +636,28 @@ export default function DashboardPage({ defaultView, defaultTab, defaultEmergenc
         </aside>
 
         {/* ── Main Workspace Area ── */}
-        <main className="flex-1 min-w-0 space-y-6">
+        <main className="flex-1 min-w-0 space-y-6 pb-24 md:pb-6">
 
           {/* Top Header Bar & Action Controls */}
-          <div className="bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-sm flex items-center justify-between gap-2 sm:gap-4">
             
             {/* Left: Mobile hamburger + Active Section Title */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition lg:hidden"
-                title="Open slidebar menu"
+                className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition shrink-0 lg:hidden"
+                title="Open menu"
               >
                 <Menu className="w-5 h-5" />
               </button>
-              <div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-navy-900 tracking-tight">
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-2xl font-extrabold text-navy-900 tracking-tight truncate">
                   {activeView === 'grid' && (activeTab === 'Scan' ? 'Imaging Scans & X-Rays' : 'Medical Records Vault')}
                   {activeView === 'timeline' && 'Chronological Medical Timeline'}
                   {activeView === 'prescriptions' && 'AI Prescriptions & Safety Checks'}
                   {activeView === 'area-alerts' && 'Jagruti Community Health & Risk Alerts'}
                 </h2>
-                <p className="text-xs text-slate-500">
+                <p className="text-[11px] sm:text-xs text-slate-500 truncate">
                   {activeView === 'grid' && `Stored & verified clinical documents (${filteredRecords.length})`}
                   {activeView === 'timeline' && `Aggregated health events & diagnostics (${timelineEvents.length})`}
                   {activeView === 'prescriptions' && `Active pharmacy medications & drug evaluations (${prescriptions.length})`}
@@ -665,14 +666,15 @@ export default function DashboardPage({ defaultView, defaultTab, defaultEmergenc
               </div>
             </div>
 
-            {/* Right: Primary Action Buttons */}
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* Right: Actions */}
+            {/* Desktop View: Full Action Buttons */}
+            <div className="hidden md:flex items-center gap-2 flex-wrap shrink-0">
               {/* Upload button */}
               <button
                 onClick={() => setIsUploadOpen(true)}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-trust-600 text-white font-bold text-xs hover:bg-trust-700 transition shadow-sm shadow-trust-600/30"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4 shrink-0" />
                 <span>Upload Record</span>
               </button>
 
@@ -684,9 +686,8 @@ export default function DashboardPage({ defaultView, defaultTab, defaultEmergenc
                 }}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-xs hover:bg-indigo-100 transition shadow-sm"
               >
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                <span className="hidden sm:inline">Aarogya AI</span>
-                <span className="sm:hidden">AI Chat</span>
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span>Aarogya AI</span>
               </button>
 
               {/* PranaSetu trigger */}
@@ -694,7 +695,7 @@ export default function DashboardPage({ defaultView, defaultTab, defaultEmergenc
                 onClick={() => setIsEmergencyOpen(true)}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-bold text-xs hover:bg-rose-100 transition shadow-sm"
               >
-                <QrCode className="w-3.5 h-3.5 text-rose-600" />
+                <QrCode className="w-3.5 h-3.5 text-rose-600 shrink-0" />
                 <span>PranaSetu</span>
               </button>
 
@@ -705,13 +706,33 @@ export default function DashboardPage({ defaultView, defaultTab, defaultEmergenc
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 border border-blue-200 text-trust-700 font-bold text-xs hover:bg-blue-100 transition shadow-sm"
                   title="Show your QR code for doctor to scan and admit you"
                 >
-                  <QrCode className="w-3.5 h-3.5 text-trust-600" />
-                  <span className="hidden sm:inline">Doctor QR</span>
-                  <span className="sm:hidden">QR</span>
+                  <QrCode className="w-3.5 h-3.5 text-trust-600 shrink-0" />
+                  <span>Doctor QR</span>
                 </button>
               )}
 
               {/* Sync button */}
+              <button
+                onClick={fetchData}
+                disabled={loading}
+                className="p-2 bg-white border border-slate-200 text-slate-600 hover:text-navy-900 rounded-xl text-xs font-bold transition shadow-sm"
+                title="Sync Vault Data"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+
+            {/* Mobile View: Mini action buttons (mini upload + sync) */}
+            <div className="flex md:hidden items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => setIsUploadOpen(true)}
+                className="inline-flex items-center justify-center gap-1 p-2 sm:px-3 sm:py-2 rounded-xl bg-trust-600 text-white font-bold text-xs hover:bg-trust-700 transition shadow-sm shadow-trust-600/30"
+                title="Upload Record"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden min-[380px]:inline text-[11px]">Upload</span>
+              </button>
+
               <button
                 onClick={fetchData}
                 disabled={loading}
@@ -863,39 +884,111 @@ export default function DashboardPage({ defaultView, defaultTab, defaultEmergenc
         </main>
       </div>
 
-      {/* ── Persistent Floating AI Chat Trigger (Aligned with Navbar / max-w-7xl layout) ── */}
-      <div className="fixed bottom-6 inset-x-0 pointer-events-none z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-end gap-2.5">
-          {/* Direct Live Audio Call Button */}
-          <button
-            onClick={() => {
-              setChatReferenceRecord(null);
-              setOpenLiveVoiceImmediately(true);
-              setIsAiChatOpen(true);
-            }}
-            className="pointer-events-auto inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-600/30 hover:scale-105 active:scale-95 transition-all border border-emerald-400/30"
-            title="Start Continuous Live Audio Call with Aarogya AI"
-          >
-            <PhoneCall className="w-4 h-4 text-white animate-pulse" />
-            <span className="hidden sm:inline">Live Audio Call</span>
-            <span className="sm:hidden">Live Call</span>
-          </button>
+      {/* ── Persistent Floating AI Chat Trigger (Desktop / md+ only) ── */}
+      <div className="hidden md:block fixed bottom-6 inset-x-0 pointer-events-none z-30">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-end">
+          <div className="pointer-events-auto flex items-center gap-2.5">
+            {/* Direct Live Audio Call Button */}
+            <button
+              onClick={() => {
+                setChatReferenceRecord(null);
+                setOpenLiveVoiceImmediately(true);
+                setIsAiChatOpen(true);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white font-bold text-sm shadow-xl shadow-emerald-600/30 hover:scale-105 active:scale-95 transition-all border border-emerald-400/30"
+              title="Start Continuous Live Audio Call with Aarogya AI"
+            >
+              <PhoneCall className="w-4 h-4 text-white animate-pulse shrink-0" />
+              <span>Live Audio Call</span>
+            </button>
 
-          {/* Standard Ask Aarogya AI Button */}
-          <button
-            onClick={() => {
-              setChatReferenceRecord(null);
-              setOpenLiveVoiceImmediately(false);
-              setIsAiChatOpen(true);
-            }}
-            className="pointer-events-auto inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-trust-600 via-indigo-600 to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-xl shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all"
-            title="Open Aarogya AI Medical Assistant"
-          >
-            <Sparkles className="w-4 h-4 text-amber-300" />
-            <span>Ask Aarogya AI</span>
-          </button>
+            {/* Standard Ask Aarogya AI Button */}
+            <button
+              onClick={() => {
+                setChatReferenceRecord(null);
+                setOpenLiveVoiceImmediately(false);
+                setIsAiChatOpen(true);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-trust-600 via-indigo-600 to-indigo-700 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all border border-indigo-400/30"
+              title="Open Aarogya AI Medical Assistant"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300 shrink-0" />
+              <span>Ask Aarogya AI</span>
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* ── Mobile Bottom Navigation Bar (Small Screens Only: Home, Ask AI, + Upload, Doctor Chat) ── */}
+      <nav
+        aria-label="Mobile Bottom Navigation"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.07)] px-2 py-1.5"
+      >
+        <div className="grid grid-cols-4 items-center max-w-md mx-auto">
+          {/* 1. Home Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsAiChatOpen(false);
+              setActiveView('grid');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className={`flex flex-col items-center justify-center py-1 transition ${
+              activeView === 'grid' && !isAiChatOpen
+                ? 'text-trust-600 font-bold'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Home className="w-5 h-5 stroke-[2]" />
+            <span className="text-[10px] font-semibold mt-0.5">Home</span>
+          </button>
+
+          {/* 2. Ask AI Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setChatReferenceRecord(null);
+              setIsAiChatOpen(true);
+            }}
+            className={`flex flex-col items-center justify-center py-1 transition ${
+              isAiChatOpen
+                ? 'text-indigo-600 font-bold'
+                : 'text-slate-500 hover:text-indigo-600'
+            }`}
+          >
+            <Sparkles className="w-5 h-5 stroke-[2] text-amber-500" />
+            <span className="text-[10px] font-semibold mt-0.5">Ask AI</span>
+          </button>
+
+          {/* 3. Upload Plus Button (Uploading documents) */}
+          <button
+            type="button"
+            onClick={() => setIsUploadOpen(true)}
+            className="flex flex-col items-center justify-center py-0.5 group"
+            title="Upload Clinical Record"
+          >
+            <div className="w-10 h-10 rounded-full bg-trust-600 text-white flex items-center justify-center shadow-md shadow-trust-600/30 group-active:scale-95 transition-transform">
+              <Plus className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <span className="text-[10px] font-bold text-trust-700 mt-0.5">Upload</span>
+          </button>
+
+          {/* 4. Doctor Chat Button */}
+          <Link
+            to="/consultations"
+            className={`flex flex-col items-center justify-center py-1 transition ${
+              location.pathname === '/consultations'
+                ? 'text-trust-600 font-bold'
+                : 'text-slate-500 hover:text-trust-600'
+            }`}
+          >
+            <MessageSquare className="w-5 h-5 stroke-[2]" />
+            <span className="text-[10px] font-semibold mt-0.5 truncate max-w-[68px]">
+              {user?.role === 'doctor' ? 'Consults' : 'Doctor Chat'}
+            </span>
+          </Link>
+        </div>
+      </nav>
 
       {/* ── Modals & Drawers ── */}
       <UploadRecordModal

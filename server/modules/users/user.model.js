@@ -129,6 +129,16 @@ const userSchema = new mongoose.Schema(
       type: locationSchema,
       default: () => ({ isAllowed: false }),
     },
+    alertPreferences: {
+      enabled: { type: Boolean, default: true },
+      minSeverity: {
+        type: String,
+        enum: ['low', 'moderate', 'high'],
+        default: 'moderate',
+      },
+      diseases: { type: [String], default: [] },
+      radiusKm: { type: Number, default: 25, min: 5, max: 100 },
+    },
   },
   {
     timestamps: true,

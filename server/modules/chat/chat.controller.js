@@ -8,7 +8,7 @@ import {
   synthesizeSpeech,
   SARVAM_SUPPORTED_LANGUAGES,
 } from '../../services/sarvam.service.js';
-import { recordSymptomFromChat } from '../health-risk/health-risk.controller.js';
+import { recordSymptomFromChat } from '../hotspot/hotspot.controller.js';
 
 /**
  * Shared core AI query processing:

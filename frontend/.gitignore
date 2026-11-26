@@ -16,6 +16,9 @@ dist-ssr/
 .vite/
 .vite-temp/
 
+# TypeScript
+*.tsbuildinfo
+
 # Logs
 logs/
 *.log

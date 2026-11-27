@@ -48,6 +48,8 @@ interface LiveAudioChatOverlayProps {
   onClose: () => void;
   referenceRecord?: MedicalRecord | null;
   initialLanguage?: string;
+  sessionId?: string | null;
+  onSessionCreated?: (sessionId: string, sessionTitle?: string) => void;
   onNewMessage?: (msg: ChatMessageItem) => void;
   existingMessages?: ChatMessageItem[];
 }
@@ -57,6 +59,8 @@ export default function LiveAudioChatOverlay({
   onClose,
   referenceRecord = null,
   initialLanguage = 'hi-IN',
+  sessionId = null,
+  onSessionCreated,
   onNewMessage,
   existingMessages = [],
 }: LiveAudioChatOverlayProps) {
@@ -342,6 +346,9 @@ export default function LiveAudioChatOverlay({
         const ext = audioBlob.type.includes('mp4') ? 'mp4' : 'webm';
         formData.append('audio', audioBlob, `live_audio.${ext}`);
         formData.append('languageCode', selectedLanguageRef.current);
+        if (sessionId) {
+          formData.append('sessionId', sessionId);
+        }
         if (referenceRecord?._id) {
           formData.append('referenceId', referenceRecord._id);
           formData.append('referenceType', 'Record');
@@ -350,6 +357,7 @@ export default function LiveAudioChatOverlay({
       } else {
         turnResponse = await chatApi.liveTurn({
           message: textToSend,
+          sessionId: sessionId || undefined,
           languageCode: selectedLanguageRef.current !== 'auto' ? selectedLanguageRef.current : undefined,
           referenceId: referenceRecord?._id,
           referenceType: referenceRecord ? 'Record' : 'None',
@@ -359,6 +367,10 @@ export default function LiveAudioChatOverlay({
       const resData = turnResponse?.data;
       if (!resData || !resData.reply) {
         throw new Error('No answer returned from Aarogya AI.');
+      }
+
+      if (!sessionId && resData.sessionId && onSessionCreated) {
+        onSessionCreated(resData.sessionId, resData.sessionTitle);
       }
 
       const asstId = resData.messageId || 'a_' + Date.now();

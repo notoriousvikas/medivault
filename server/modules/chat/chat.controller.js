@@ -1,4 +1,5 @@
 import { Chat } from './chat.model.js';
+import { ChatSession } from './chat-session.model.js';
 import { callGroqChat } from '../../config/groq.js';
 import { buildRagChatPrompt } from '../../services/prompts.service.js';
 import { buildRagContext } from '../../services/rag.service.js';
@@ -10,34 +11,83 @@ import {
 } from '../../services/sarvam.service.js';
 import { recordSymptomFromChat } from '../hotspot/hotspot.controller.js';
 
+function deriveSessionTitle(text = '') {
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  if (!cleaned) return 'New Chat';
+  if (cleaned.length <= 48) return cleaned;
+  const sliced = cleaned.slice(0, 48);
+  const lastSpace = sliced.lastIndexOf(' ');
+  return (lastSpace > 20 ? sliced.slice(0, lastSpace) : sliced).trim() + '...';
+}
+
+async function ensureChatSession({
+  userId,
+  sessionId,
+  initialMessage = '',
+  category = 'general',
+  referenceId,
+  referenceType = 'None',
+}) {
+  if (sessionId) {
+    const existing = await ChatSession.findOne({ _id: sessionId, userId });
+    if (!existing) {
+      throw new AppError('Chat session not found.', 404);
+    }
+    return existing;
+  }
+
+  return ChatSession.create({
+    userId,
+    title: deriveSessionTitle(initialMessage),
+    category,
+    referenceId: referenceId || undefined,
+    referenceType: ['Record', 'Prescription'].includes(referenceType) ? referenceType : 'None',
+    lastMessageAt: new Date(),
+  });
+}
+
 /**
  * Shared core AI query processing:
- * Grounds the query using RAG across patient records, prescriptions, and history,
- * executes Groq LLM completion, and persists conversational memory to MongoDB.
+ * Grounds the query using RAG across patient records, prescriptions, current session history,
+ * and important memories from previous chats, executes Groq LLM completion, and persists
+ * conversational memory to MongoDB.
  */
 async function processRagChatQuery({
   userId,
   message,
+  sessionId,
   category = 'general',
   referenceId,
   referenceType = 'None',
   preferredLanguage,
 }) {
-  // 1. Retrieve grounded clinical context across patient profile, records, prescriptions, and chat history
+  // 0. Resolve or create the active ChatSession
+  const session = await ensureChatSession({
+    userId,
+    sessionId,
+    initialMessage: message,
+    category,
+    referenceId,
+    referenceType,
+  });
+
+  // 1. Retrieve grounded clinical context across patient profile, records, prescriptions, active session, and past chats
   const ragContext = await buildRagContext({
     userId,
     query: message,
+    sessionId: session._id,
     targetRecordId: referenceType === 'Record' ? referenceId : null,
     targetPrescriptionId: referenceType === 'Prescription' ? referenceId : null,
   });
 
-  // 2. Build grounded chat prompt with patient context and language guidance
+  // 2. Build grounded chat prompt with patient context, cross-chat RAG memories, and language guidance
   const groqMessages = buildRagChatPrompt({
     userQuery: message.trim(),
     patientProfile: ragContext.patientProfile,
     relevantRecords: ragContext.records,
     relevantPrescriptions: ragContext.prescriptions,
     chatHistory: ragContext.chatHistory,
+    relevantPastChats: ragContext.relevantPastChats,
     preferredLanguage,
   });
 
@@ -51,6 +101,7 @@ async function processRagChatQuery({
   // 4. Save user message in conversational memory
   const userChat = await Chat.create({
     userId,
+    sessionId: session._id,
     role: 'user',
     content: message.trim(),
     category,
@@ -61,6 +112,7 @@ async function processRagChatQuery({
   // 5. Save assistant response with RAG audit context
   const assistantChat = await Chat.create({
     userId,
+    sessionId: session._id,
     role: 'assistant',
     content: groqResult.content,
     category,
@@ -74,6 +126,15 @@ async function processRagChatQuery({
     },
   });
 
+  // Update session metadata & auto-title if still 'New Chat'
+  if (session.title === 'New Chat' && message.trim()) {
+    session.title = deriveSessionTitle(message);
+  }
+  session.lastMessageAt = assistantChat.createdAt || new Date();
+  session.lastMessagePreview = assistantChat.content.slice(0, 140);
+  session.messageCount = (session.messageCount || 0) + 2;
+  await session.save();
+
   // 6. Passively extract symptoms from patient conversation for area-based health cluster detection
   recordSymptomFromChat({
     userId,
@@ -84,6 +145,7 @@ async function processRagChatQuery({
   );
 
   return {
+    session,
     userChat,
     assistantChat,
     groqResult,
@@ -96,7 +158,14 @@ async function processRagChatQuery({
  * POST /api/chat
  */
 const sendMessage = catchAsync(async (req, res) => {
-  const { message, category = 'general', referenceId, referenceType = 'None', languageCode } = req.body;
+  const {
+    message,
+    sessionId,
+    category = 'general',
+    referenceId,
+    referenceType = 'None',
+    languageCode,
+  } = req.body;
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     throw new AppError('Message text is required.', 400);
@@ -104,9 +173,10 @@ const sendMessage = catchAsync(async (req, res) => {
 
   const userId = req.user.userId;
 
-  const { assistantChat } = await processRagChatQuery({
+  const { session, assistantChat } = await processRagChatQuery({
     userId,
     message,
+    sessionId,
     category,
     referenceId,
     referenceType,
@@ -118,6 +188,8 @@ const sendMessage = catchAsync(async (req, res) => {
     data: {
       reply: assistantChat.content,
       messageId: assistantChat._id,
+      sessionId: session._id,
+      sessionTitle: session.title,
       category: assistantChat.category,
       contextUsed: assistantChat.contextUsed,
       createdAt: assistantChat.createdAt,
@@ -143,6 +215,7 @@ const voiceConversation = catchAsync(async (req, res) => {
 
   const {
     languageCode = 'auto',
+    sessionId,
     category = 'general',
     referenceId,
     referenceType = 'None',
@@ -182,9 +255,10 @@ const voiceConversation = catchAsync(async (req, res) => {
       : 'en-IN';
 
   // 2. Process query through existing Groq RAG pipeline
-  const { assistantChat } = await processRagChatQuery({
+  const { session, assistantChat } = await processRagChatQuery({
     userId,
     message: recognizedText,
+    sessionId,
     category,
     referenceId,
     referenceType,
@@ -226,6 +300,8 @@ const voiceConversation = catchAsync(async (req, res) => {
       languageCode: activeLanguage,
       audio: ttsResult?.audioDataUrl || null,
       messageId: assistantChat._id,
+      sessionId: session._id,
+      sessionTitle: session.title,
       category: assistantChat.category,
       contextUsed: assistantChat.contextUsed,
       createdAt: assistantChat.createdAt,
@@ -303,13 +379,127 @@ const getSupportedLanguages = (req, res) => {
 };
 
 /**
- * Retrieve chat history for the authenticated user.
+ * List all chat sessions for the authenticated user (ChatGPT-style sidebar).
+ * Migrates any legacy session-less messages into a "Previous Conversation" session once.
+ * GET /api/chat/sessions
+ */
+const getSessions = catchAsync(async (req, res) => {
+  const userId = req.user.userId;
+
+  // One-time migration for legacy messages created before multi-session support
+  const legacyFilter = {
+    userId,
+    $or: [{ sessionId: { $exists: false } }, { sessionId: null }],
+  };
+  const legacyCount = await Chat.countDocuments(legacyFilter);
+  if (legacyCount > 0) {
+    const [firstLegacy, lastLegacy] = await Promise.all([
+      Chat.findOne(legacyFilter).sort({ createdAt: 1 }).lean(),
+      Chat.findOne(legacyFilter).sort({ createdAt: -1 }).lean(),
+    ]);
+    const legacySession = await ChatSession.create({
+      userId,
+      title: deriveSessionTitle(firstLegacy?.content || 'Previous Conversation'),
+      lastMessageAt: lastLegacy?.createdAt || new Date(),
+      lastMessagePreview: (lastLegacy?.content || '').slice(0, 140),
+      messageCount: legacyCount,
+    });
+    await Chat.updateMany(legacyFilter, { $set: { sessionId: legacySession._id } });
+  }
+
+  const sessions = await ChatSession.find({ userId })
+    .sort({ lastMessageAt: -1, updatedAt: -1 })
+    .lean();
+
+  res.status(200).json({
+    status: 'success',
+    results: sessions.length,
+    data: sessions,
+  });
+});
+
+/**
+ * Create a new chat session.
+ * POST /api/chat/sessions
+ */
+const createSession = catchAsync(async (req, res) => {
+  const userId = req.user.userId;
+  const { title, category = 'general', referenceId, referenceType = 'None' } = req.body || {};
+
+  const session = await ChatSession.create({
+    userId,
+    title: title && title.trim() ? title.trim().slice(0, 120) : 'New Chat',
+    category,
+    referenceId: referenceId || undefined,
+    referenceType: ['Record', 'Prescription'].includes(referenceType) ? referenceType : 'None',
+    lastMessageAt: new Date(),
+  });
+
+  res.status(201).json({
+    status: 'success',
+    data: session,
+  });
+});
+
+/**
+ * Rename an existing chat session.
+ * PATCH /api/chat/sessions/:sessionId
+ */
+const renameSession = catchAsync(async (req, res) => {
+  const { title } = req.body || {};
+  if (!title || typeof title !== 'string' || !title.trim()) {
+    throw new AppError('Session title is required.', 400);
+  }
+
+  const session = await ChatSession.findOneAndUpdate(
+    { _id: req.params.sessionId, userId: req.user.userId },
+    { $set: { title: title.trim().slice(0, 120) } },
+    { new: true }
+  );
+
+  if (!session) {
+    throw new AppError('Chat session not found.', 404);
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: session,
+  });
+});
+
+/**
+ * Delete a chat session and all its messages.
+ * DELETE /api/chat/sessions/:sessionId
+ */
+const deleteSession = catchAsync(async (req, res) => {
+  const session = await ChatSession.findOneAndDelete({
+    _id: req.params.sessionId,
+    userId: req.user.userId,
+  });
+
+  if (!session) {
+    throw new AppError('Chat session not found.', 404);
+  }
+
+  await Chat.deleteMany({
+    userId: req.user.userId,
+    sessionId: session._id,
+  });
+
+  res.status(204).end();
+});
+
+/**
+ * Retrieve chat history for the authenticated user (optionally scoped to a sessionId).
  * GET /api/chat
  */
 const getChatHistory = catchAsync(async (req, res) => {
-  const { category, page = 1, limit = 50 } = req.query;
+  const { category, sessionId, page = 1, limit = 50 } = req.query;
 
   const query = { userId: req.user.userId };
+  if (sessionId) {
+    query.sessionId = sessionId;
+  }
   if (category) {
     query.category = category;
   }
@@ -337,11 +527,25 @@ const getChatHistory = catchAsync(async (req, res) => {
 });
 
 /**
- * Clear all chat history for the authenticated user.
+ * Clear chat history for a specific session or all sessions for the authenticated user.
  * DELETE /api/chat
  */
 const clearChatHistory = catchAsync(async (req, res) => {
-  await Chat.deleteMany({ userId: req.user.userId });
+  const { sessionId } = req.query;
+  const userId = req.user.userId;
+
+  if (sessionId) {
+    await Chat.deleteMany({ userId, sessionId });
+    await ChatSession.findOneAndUpdate(
+      { _id: sessionId, userId },
+      { $set: { messageCount: 0, lastMessagePreview: '' } }
+    );
+  } else {
+    await Promise.all([
+      Chat.deleteMany({ userId }),
+      ChatSession.deleteMany({ userId }),
+    ]);
+  }
   res.status(204).end();
 });
 
@@ -400,6 +604,7 @@ const liveTurn = catchAsync(async (req, res) => {
   }
 
   const {
+    sessionId,
     category = 'general',
     referenceId,
     referenceType = 'None',
@@ -415,9 +620,10 @@ const liveTurn = catchAsync(async (req, res) => {
       : 'en-IN';
 
   // Grounded RAG + Groq AI completion
-  const { assistantChat } = await processRagChatQuery({
+  const { session, assistantChat } = await processRagChatQuery({
     userId,
     message: text.trim(),
+    sessionId,
     category,
     referenceId,
     referenceType,
@@ -459,6 +665,8 @@ const liveTurn = catchAsync(async (req, res) => {
       languageCode: activeLanguage,
       audio: ttsResult?.audioDataUrl || null,
       messageId: assistantChat._id,
+      sessionId: session._id,
+      sessionTitle: session.title,
       category: assistantChat.category,
       contextUsed: assistantChat.contextUsed,
       createdAt: assistantChat.createdAt,
@@ -474,6 +682,10 @@ export {
   transcribeAudioOnly,
   synthesizeSpeechOnly,
   getSupportedLanguages,
+  getSessions,
+  createSession,
+  renameSession,
+  deleteSession,
   getChatHistory,
   clearChatHistory,
   deleteChatMessage,

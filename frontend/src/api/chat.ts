@@ -1,7 +1,21 @@
 import api from './client';
 
+export interface ChatSessionItem {
+  _id: string;
+  title: string;
+  category?: string;
+  referenceId?: string;
+  referenceType?: string;
+  lastMessageAt?: string;
+  lastMessagePreview?: string;
+  messageCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface SendChatMessageParams {
   message: string;
+  sessionId?: string;
   category?: string;
   referenceId?: string;
   referenceType?: string;
@@ -16,13 +30,41 @@ export interface SynthesizeSpeechParams {
 }
 
 export const chatApi = {
-  getHistory: async () => {
-    const res = await api.get('/chat');
+  getSessions: async () => {
+    const res = await api.get('/chat/sessions');
+    return res.data;
+  },
+
+  createSession: async (data?: {
+    title?: string;
+    category?: string;
+    referenceId?: string;
+    referenceType?: string;
+  }) => {
+    const res = await api.post('/chat/sessions', data || {});
+    return res.data;
+  },
+
+  renameSession: async (sessionId: string, title: string) => {
+    const res = await api.patch(`/chat/sessions/${sessionId}`, { title });
+    return res.data;
+  },
+
+  deleteSession: async (sessionId: string) => {
+    const res = await api.delete(`/chat/sessions/${sessionId}`);
+    return res.data;
+  },
+
+  getHistory: async (sessionId?: string) => {
+    const res = await api.get('/chat', {
+      params: sessionId ? { sessionId } : undefined,
+    });
     return res.data;
   },
 
   sendMessage: async ({
     message,
+    sessionId,
     category = 'general',
     referenceId,
     referenceType = 'None',
@@ -30,6 +72,7 @@ export const chatApi = {
   }: SendChatMessageParams) => {
     const res = await api.post('/chat', {
       message,
+      sessionId,
       category,
       referenceId,
       referenceType,
@@ -89,8 +132,10 @@ export const chatApi = {
     return res.data;
   },
 
-  clearHistory: async () => {
-    const res = await api.delete('/chat');
+  clearHistory: async (sessionId?: string) => {
+    const res = await api.delete('/chat', {
+      params: sessionId ? { sessionId } : undefined,
+    });
     return res.data;
   },
 

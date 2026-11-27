@@ -256,6 +256,7 @@ function buildRagChatPrompt({
   relevantRecords = [],
   relevantPrescriptions = [],
   chatHistory = [],
+  relevantPastChats = [],
   preferredLanguage,
 }) {
   const patientProfileSection = patientProfile
@@ -302,6 +303,17 @@ function buildRagChatPrompt({
     languageInstruction = `\n[LANGUAGE INSTRUCTION]\nRespond in the SAME language that the user used to ask their question. If the user writes or speaks in English, respond in clear English. If the user writes or speaks in Hindi or another Indian language, respond in that language. Use warm, concise, and easy-to-understand sentences. Avoid complex markdown tables or excessive asterisks so the response can be read or spoken aloud naturally.`;
   }
 
+  const pastChatsContext = relevantPastChats.length
+    ? `\n[RELEVANT MEMORY FROM PREVIOUS CHATS (USE ONLY IF HELPFUL TO THIS QUESTION)]\n${relevantPastChats
+        .map(
+          (pc, i) =>
+            `${i + 1}. [Chat: "${pc.sessionTitle}", ${new Date(
+              pc.createdAt
+            ).toLocaleDateString()}] ${pc.role.toUpperCase()}: ${pc.content.slice(0, 320)}`
+        )
+        .join('\n')}\n`
+    : '';
+
   const messages = [
     {
       role: 'system',
@@ -316,7 +328,7 @@ ${recordsContext}
 
 [ACTIVE & HISTORICAL PRESCRIPTIONS]
 ${prescriptionsContext}
-----------------------------------------
+${pastChatsContext}----------------------------------------
 ${languageInstruction}
 
 If the query is NOT related to medical, health, or AyuRaksha topics, ignore/decline it politely with: "I am AyuRaksha's health assistant. I can only assist with medical questions and managing your AyuRaksha health records. Please feel free to ask a health-related query!"

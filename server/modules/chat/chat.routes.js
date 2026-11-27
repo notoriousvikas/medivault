@@ -30,6 +30,17 @@ router.post('/transcribe', audioUpload.single('audio'), controller.transcribeAud
 // On-demand Text-to-Speech synthesis for existing messages
 router.post('/synthesize', controller.synthesizeSpeechOnly);
 
+// ChatGPT-style conversation sessions
+router
+  .route('/sessions')
+  .get(controller.getSessions)
+  .post(controller.createSession);
+
+router
+  .route('/sessions/:sessionId')
+  .patch(controller.renameSession)
+  .delete(controller.deleteSession);
+
 // Standard text chat and conversation management
 router
   .route('/')
